@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { getJSTYearMonth, formatJSTDate } from "@/lib/date";
 
 async function getBlogs() {
   const res = await fetch(
@@ -30,10 +31,10 @@ export default async function BlogMonthPage({
 
   // --- 月で絞り込み ---
   const filtered = blogs.filter((blog: any) => {
-    const date = new Date(blog.createdAt);
+    const jst = getJSTYearMonth(blog.createdAt);
     return (
-      date.getFullYear().toString() === year &&
-      String(date.getMonth() + 1).padStart(2, "0") === month
+      jst.year.toString() === year &&
+      String(jst.month).padStart(2, "0") === month
     );
   });
 
@@ -77,7 +78,7 @@ export default async function BlogMonthPage({
                   {blog.content}
                 </p>
                 <p className="text-right text-gray-400 text-xs sm:text-sm">
-                  {new Date(blog.createdAt).toLocaleDateString("ja-JP")}
+                  {formatJSTDate(blog.createdAt)}
                 </p>
               </div>
             </div>

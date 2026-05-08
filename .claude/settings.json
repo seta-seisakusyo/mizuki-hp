@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Edit(next/src/**)",
+      "Write(next/src/**)",
+      "Edit(*.md)",
+      "Write(*.md)",
+      "Edit(docker-compose*.yml)",
+      "Edit(nginx/**)",
+      "Bash(npm run *)",
+      "Bash(npx prisma *)",
+      "Bash(docker compose *)",
+      "Bash(docker-compose *)",
+      "Bash(git *)",
+      "Bash(gh *)",
+      "WebFetch(domain:*)",
+      "WebSearch"
+    ],
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(git push --force *)",
+      "Edit(.env)",
+      "Write(.env)",
+      "Edit(next/.env)",
+      "Write(next/.env)"
+    ],
+    "ask": []
+  },
+  "plansDirectory": ".claude/plans",
+  "enableAllProjectMcpServers": true,
+  "disableAllHooks": false
+}

@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { formatJSTDate } from "@/lib/date";
 
 export default function AdminBlogPage() {
   const [blogs, setBlogs] = useState<any[]>([]);
@@ -81,7 +82,7 @@ export default function AdminBlogPage() {
               <p className="text-gray-600 text-sm truncate">{blog.content}</p>
 
               <div className="flex justify-between items-center text-sm text-gray-500 mt-3">
-                <span>📅 {new Date(blog.createdAt).toLocaleDateString()}</span>
+                <span>📅 {formatJSTDate(blog.createdAt)}</span>
                 <div className="flex gap-4">
                   <Link
                     href={`/portal-admin/blog/edit/${blog.id}`}

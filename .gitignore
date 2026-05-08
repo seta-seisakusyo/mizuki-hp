@@ -67,5 +67,6 @@ docker-compose.override.yml
 *.sql
 backups/
 uploads/
-# claude code
-.claude/
+# claude code (personal settings only)
+.claude/settings.local.json
+.claude/plans/

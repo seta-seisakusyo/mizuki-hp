@@ -41,7 +41,7 @@ export default function News() {
   }
 
   return (
-    <Box sx={{ maxWidth: 700, mx: "auto", py: 2 }}>
+    <Box sx={{ maxWidth: 700, mx: "auto", py: 2, px: 2 }}>
       {newsList.map((news) => (
         <Box
           key={news.id}

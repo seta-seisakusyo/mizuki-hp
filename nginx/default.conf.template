@@ -1,3 +1,17 @@
+# www → non-www リダイレクト (HTTP)
+server {
+    listen 80;
+    server_name www.${SERVER_NAME};
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    location / {
+        return 301 https://${SERVER_NAME}$request_uri;
+    }
+}
+
 # HTTP
 server {
     listen 80;

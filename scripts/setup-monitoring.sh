@@ -17,12 +17,18 @@ ALERT_EMAIL="info@setaseisakusyo.com"
 echo "=== みずきクリニック サーバー監視セットアップ ==="
 echo ""
 
+# ---- 対話式入力 ----
+read -sp "メール送信用パスワード (info@setaseisakusyo.com): " MAIL_PASSWORD
+echo ""
+read -p "SSHポート番号: " SSH_PORT
+echo ""
+
 # ---- 1. msmtp (メール送信) ----
 echo "[1/4] msmtp インストール..."
 apt-get update -qq
 apt-get install -y -qq msmtp msmtp-mta
 
-cat > /etc/msmtprc << 'MSMTP'
+cat > /etc/msmtprc << EOF
 defaults
 auth           on
 tls            on
@@ -35,8 +41,8 @@ port           465
 tls_starttls   off
 from           info@setaseisakusyo.com
 user           info@setaseisakusyo.com
-password       admin0127++
-MSMTP
+password       ${MAIL_PASSWORD}
+EOF
 
 chmod 600 /etc/msmtprc
 echo "  ✓ msmtp 設定完了"
@@ -48,6 +54,10 @@ apt-get install -y -qq fail2ban
 # 設定ファイルコピー
 cp "${PROJECT_DIR}/fail2ban/jail.local" /etc/fail2ban/jail.local
 cp "${PROJECT_DIR}/fail2ban/filter.d/nginx-404.conf" /etc/fail2ban/filter.d/nginx-404.conf
+cp "${PROJECT_DIR}/fail2ban/filter.d/nginx-proxy.conf" /etc/fail2ban/filter.d/nginx-proxy.conf
+
+# SSHポートを設定
+sed -i "s/port = ssh/port = ${SSH_PORT}/" /etc/fail2ban/jail.local
 
 # nginxログディレクトリ作成
 mkdir -p /var/log/nginx
@@ -73,7 +83,7 @@ echo "[4/4] cron 設定..."
 crontab -l 2>/dev/null | grep -v "mizuki" | grep -v "logwatch" > /tmp/crontab.tmp || true
 
 cat >> /tmp/crontab.tmp << CRON
-# === mizuki-clinic.online 監視 ===
+# === mizuki-clinic.jp 監視 ===
 # サービス死活監視 (5分ごと)
 */5 * * * * ${PROJECT_DIR}/scripts/monitor.sh
 # SSL証明書自動更新 (毎月1日 3:00)

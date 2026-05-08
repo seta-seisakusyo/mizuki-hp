@@ -10,7 +10,7 @@ const nextConfig: NextConfig = {
         remotePatterns: [
             {
                 protocol: "https",
-                hostname: "mizuki-clinic.online",
+                hostname: "mizuki-clinic.jp",
             },
             {
                 protocol: "https",

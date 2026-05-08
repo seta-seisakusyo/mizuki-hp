@@ -1,0 +1,12 @@
+# Personal settings (not shared with team)
+settings.local.json
+
+# Personal hook configurations
+hooks/config/hooks-config.local.json
+
+# Plans directory (optional - uncomment if plans should not be committed)
+# plans/
+
+# Temporary files
+*.tmp
+*.log

@@ -7,7 +7,7 @@ const locs = [
 ];
 
 module.exports = {
-  siteUrl: "https://mizuki-clinic.online", // サイトのベースURL
+  siteUrl: "https://mizuki-clinic.jp", // サイトのベースURL
   generateRobotsTxt: true, // robots.txt を生成
   sitemapSize: 5000, // 1つのサイトマップに含めるURL数
   exclude: ["/portal-admin*", "/portal-login*"], // サイトマップから除外するパス、ニュース登録用portal-adminページと管理者用portal-loginページを作成すると想定

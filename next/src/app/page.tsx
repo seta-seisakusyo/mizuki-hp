@@ -1,4 +1,4 @@
-import { Box } from "@mui/material";
+import { Box, Typography, Paper } from "@mui/material";
 import React from "react";
 import ClinicInfo from "./_home/ClinicInfo";
 import ClinicInfoMainTitle from "./_home/ClinicInfoMainTitle";
@@ -18,6 +18,30 @@ const HomePageContent: React.FC = () => {
 
       {/* トップセクション */}
       <HeroTopSection></HeroTopSection>
+
+      {/* ご来院の皆様へ */}
+      <Box sx={{ display: "flex", justifyContent: "center", px: 2, mt: 4, mb: 2 }}>
+        <Paper
+          elevation={0}
+          sx={{
+            maxWidth: 800,
+            width: "100%",
+            border: "2px solid #c62828",
+            borderRadius: 2,
+            p: 3,
+          }}
+        >
+          <Typography
+            variant="h6"
+            sx={{ fontWeight: 700, color: "#c62828", mb: 1.5, textAlign: "center" }}
+          >
+            ご来院の皆様へ
+          </Typography>
+          <Typography variant="body1" sx={{ lineHeight: 1.8 }}>
+            ※発熱外来においては、受診歴の有無に関わらず、発熱その他感染症を疑わせるような症状を呈する患者さんの受入れを行っております。感染防止対策として、発熱患者さんの動線を分ける対応を行っております。
+          </Typography>
+        </Paper>
+      </Box>
 
       {/* お知らせセクション */}
       <NewsMainTitle></NewsMainTitle>

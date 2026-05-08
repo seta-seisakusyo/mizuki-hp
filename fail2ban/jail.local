@@ -10,7 +10,7 @@ findtime = 600
 maxretry = 5
 # BAN時の通知先メールアドレス
 destemail = info@mizuki-clinic.jp
-sender = fail2ban@mizuki-clinic.online
+sender = fail2ban@mizuki-clinic.jp
 # アクション（メール通知 + iptables BAN）
 action = %(action_mwl)s
 

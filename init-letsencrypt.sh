@@ -1,6 +1,6 @@
 #!/bin/bash
 
-domain="mizuki-clinic.online"
+domain="mizuki-clinic.jp"
 email=""  # ここにメールアドレスを設定
 staging=0 # テスト時は1に設定（Let's Encryptのレート制限回避）
 
@@ -52,6 +52,7 @@ docker compose run --rm --entrypoint "\
     $staging_arg \
     --email $email \
     -d $domain \
+    -d www.$domain \
     --rsa-key-size 4096 \
     --agree-tos \
     --no-eff-email \

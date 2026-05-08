@@ -72,6 +72,7 @@ export default function ContactForm({ recaptchaSiteKey }: ContactFormProps) {
       email: emailRef.current?.value || "",
       phone: phoneRef.current?.value || "",
       inquiry: inquiryRef.current?.value || "",
+      token: "",
     };
 
     const validationErrors = validateInquiry(formData);
@@ -83,19 +84,20 @@ export default function ContactForm({ recaptchaSiteKey }: ContactFormProps) {
 
     try {
       // reCAPTCHA v3 トークン取得＆検証
-      if (recaptchaSiteKey && window.grecaptcha) {
-        const token = await new Promise<string>((resolve) => {
-          window.grecaptcha.ready(async () => {
-            const t = await window.grecaptcha.execute(recaptchaSiteKey, { action: "contact" });
-            resolve(t);
-          });
-        });
-
-        const recaptchaRes = await axios.post("/api/recaptcha", { token });
-        if (!recaptchaRes.data.success) {
+      if (recaptchaSiteKey) {
+        if (!window.grecaptcha) {
           setModalContent("error");
           return;
         }
+
+        const token = await new Promise<string>((resolve) => {
+          window.grecaptcha.ready(async () => {
+            const value = await window.grecaptcha.execute(recaptchaSiteKey, { action: "contact" });
+            resolve(value);
+          });
+        });
+
+        formData.token = token;
       }
 
       const emailRes = await axios.post("/api/email", formData);

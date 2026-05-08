@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
 import type { BlogItem } from "@/types/models";
+import { getJSTYearMonth, formatJSTDate } from "@/lib/date";
 
 export const metadata: Metadata = {
     title: "院長俳句展 | みずきクリニック",
@@ -96,8 +97,8 @@ export default async function BlogListPage({ searchParams }: { searchParams: Pro
     const filterMonth = params?.month;
     const filteredBlogs = (filterYear && filterMonth)
         ? blogs.filter((blog) => {
-            const d = new Date(blog.createdAt);
-            return d.getFullYear() === Number(filterYear) && (d.getMonth() + 1) === Number(filterMonth);
+            const { year, month } = getJSTYearMonth(blog.createdAt);
+            return year === Number(filterYear) && month === Number(filterMonth);
         })
         : blogs;
 
@@ -110,10 +111,9 @@ export default async function BlogListPage({ searchParams }: { searchParams: Pro
 
     // --- アーカイブグループ ---
     const archiveMap = blogs.reduce<Record<string, number>>((acc, blog) => {
-        const date = new Date(blog.createdAt);
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const key = `${year}年${month}月`;
+        const { year, month } = getJSTYearMonth(blog.createdAt);
+        const monthStr = String(month).padStart(2, "0");
+        const key = `${year}年${monthStr}月`;
         acc[key] = (acc[key] ?? 0) + 1;
         return acc;
     }, {});
@@ -216,7 +216,7 @@ export default async function BlogListPage({ searchParams }: { searchParams: Pro
 
                                 {/* 日付（横書き） */}
                                 <time className="mt-2 sm:mt-3 text-[10px] sm:text-xs text-gray-400">
-                                    {new Date(blog.createdAt).toLocaleDateString("ja-JP")}
+                                    {formatJSTDate(blog.createdAt)}
                                 </time>
                             </div>
                         </article>

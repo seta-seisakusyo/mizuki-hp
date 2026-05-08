@@ -5,7 +5,7 @@ import authConfig from "../auth.config";
 
 const prisma = getPrismaClient();
 
-const useSecureCookies = process.env.AUTH_URL?.startsWith("https://") ?? false;
+const useSecureCookies = process.env.NEXTAUTH_URL?.startsWith("https://") ?? false;
 
 export const {
   handlers: { GET, POST },

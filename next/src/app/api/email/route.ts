@@ -1,165 +1,112 @@
-import { auth } from "@/auth";
-import { getPrismaClient } from "@/lib/db";
 import { isRateLimited } from "@/lib/rateLimit";
 import { validateInquiry } from "@/lib/validation";
+import { isAdminUser } from "@/lib/contact/auth";
+import { sendContactEmails } from "@/lib/contact/mailer";
+import { verifyContactRecaptcha } from "@/lib/contact/recaptcha";
+import {
+  createInquiry,
+  listInquiries,
+  removeInquiry,
+} from "@/lib/contact/repository";
+import { ContactPayload, ContactRequestBody } from "@/lib/contact/types";
 import { NextRequest, NextResponse } from "next/server";
-import nodemailer from "nodemailer";
 import xss from "xss";
 
-const prisma = getPrismaClient();
+function badRequest(error: string, details?: Record<string, string>) {
+  return NextResponse.json(
+    { success: false, error, ...(details ? { details } : {}) },
+    { status: 400 }
+  );
+}
+
+function unauthorized() {
+  return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+}
+
+function sanitizeBody(body: ContactRequestBody): ContactPayload {
+  return {
+    name: xss(String(body.name || "")).trim(),
+    email: xss(String(body.email || "")).trim(),
+    phone: xss(String(body.phone || "")).trim(),
+    inquiry: xss(String(body.inquiry || "")).trim(),
+  };
+}
 
 export async function POST(req: NextRequest) {
   if (isRateLimited(req, { windowMs: 60_000, max: 3 })) {
     return NextResponse.json(
-      { success: false, error: "送信回数の上限に達しました。しばらく経ってからお試しください。" },
+      { success: false, error: "Too many requests. Please try again later." },
       { status: 429 }
     );
   }
 
   try {
-    const inquiryData = await req.json();
+    const body = (await req.json()) as ContactRequestBody;
+    const token = String(body.token || "");
+    const payload = sanitizeBody(body);
 
-    // 🔹 XSS対策
-    const sanitizedData = {
-      name: xss(inquiryData.name || ""),
-      email: xss(inquiryData.email || ""),
-      phone: xss(inquiryData.phone || ""),
-      inquiry: xss(inquiryData.inquiry || ""),
-    };
-
-    // 🔹 バリデーション
-    const validateResult = validateInquiry(sanitizedData);
-    if (Object.keys(validateResult).length > 0) {
-      return NextResponse.json({ errors: validateResult }, { status: 400 });
+    const validationErrors = validateInquiry(payload);
+    if (Object.keys(validationErrors).length > 0) {
+      return badRequest("Validation failed.", validationErrors);
     }
 
-    // 🔹 DB登録
-    const inquiryRecord = await prisma.inquiry.create({
-      data: {
-        name: sanitizedData.name,
-        email: sanitizedData.email,
-        phone: sanitizedData.phone,
-        inquiry: sanitizedData.inquiry,
-      },
-    });
+    const recaptchaOk = await verifyContactRecaptcha(token);
+    if (!recaptchaOk) {
+      return NextResponse.json(
+        { success: false, error: "reCAPTCHA verification failed." },
+        { status: 403 }
+      );
+    }
 
-    // 🔹 nodemailer設定
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT) || 465,
-      secure: true,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    });
-
-    const adminAddress = process.env.CONTACT_TO_EMAIL || process.env.SMTP_USER;
-
-    // 🔸 管理者宛メール
-    await transporter.sendMail({
-      from: `"みずきクリニック Webフォーム" <${process.env.SMTP_USER}>`,
-      to: adminAddress,
-      subject: `【お問い合わせ】${sanitizedData.name} 様より`,
-      html: `
-        <h3>新しいお問い合わせがありました。</h3>
-        <p><strong>お名前:</strong> ${sanitizedData.name}</p>
-        <p><strong>メール:</strong> ${sanitizedData.email}</p>
-        <p><strong>電話番号:</strong> ${sanitizedData.phone}</p>
-        <p><strong>お問い合わせ内容:</strong><br>${sanitizedData.inquiry}</p>
-        <hr />
-        <p><small>ID: ${inquiryRecord.id} / ${inquiryRecord.createdAt}</small></p>
-      `,
-    });
-
-    // 🔸 自動返信メール
-    await transporter.sendMail({
-      from: `"みずきクリニック" <${process.env.SMTP_USER}>`,
-      to: sanitizedData.email,
-      subject: "【自動返信】お問い合わせありがとうございます",
-      html: `
-        <p>${sanitizedData.name} 様</p>
-        <p>このたびはお問い合わせありがとうございます。</p>
-        <p>以下の内容で受け付けました。</p>
-        <hr />
-        <p>${sanitizedData.inquiry}</p>
-        <hr />
-        <p>２営業日以内に、担当者よりご連絡いたします。</p>
-        <p>みずきクリニック<br>
-        石川県金沢市みずき1丁目3-5<br>
-        TEL: 076-255-0337<br>
-        </p>
-      `,
-    });
+    // メール送信を先に実行（失敗時はDB保存もスキップ）
+    await sendContactEmails(payload);
+    // メール送信成功後にDB保存（重複防止）
+    await createInquiry(payload);
 
     return NextResponse.json({
       success: true,
-      message: "問い合わせを登録し、メールを送信しました。",
+      message: "Inquiry sent successfully.",
     });
   } catch (error) {
-    console.error("問い合わせ処理エラー:", error);
+    console.error("Inquiry send error:", error);
     return NextResponse.json(
-      { success: false, error: "送信・登録処理に失敗しました。" },
+      { success: false, error: "Failed to send inquiry." },
       { status: 500 }
     );
   }
 }
 
 export async function GET() {
-  const session = await auth();
-  if (!session) {
-    return NextResponse.json({ error: "未ログインです" }, { status: 401 });
-  }
+  if (!(await isAdminUser())) return unauthorized();
 
   try {
-    const inquiries = await prisma.inquiry.findMany({
-      orderBy: { createdAt: "desc" },
-    });
-    return NextResponse.json({ inquiries });
+    const inquiries = await listInquiries();
+    return NextResponse.json({ success: true, inquiries });
   } catch (error) {
-    console.error("問い合わせ取得エラー:", error);
+    console.error("Inquiry list error:", error);
     return NextResponse.json(
-      { error: "問い合わせ一覧の取得に失敗しました" },
+      { success: false, error: "Failed to fetch inquiries." },
       { status: 500 }
     );
   }
 }
 
 export async function DELETE(req: NextRequest) {
-  const session = await auth();
-  if (!session?.user?.email) {
-    return NextResponse.json({ error: "未ログインです" }, { status: 401 });
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
-    select: { role: true },
-  });
-
-  if (!user || user.role !== "ADMIN") {
-    return NextResponse.json({ error: "権限がありません" }, { status: 403 });
-  }
+  if (!(await isAdminUser())) return unauthorized();
 
   try {
-    const body = await req.json();
-    const { id } = body;
-
-    if (!id) {
-      return NextResponse.json(
-        { error: "IDが指定されていません" },
-        { status: 400 }
-      );
+    const body = (await req.json()) as { id?: number | string };
+    const id = Number(body.id);
+    if (!Number.isFinite(id) || id <= 0) {
+      return badRequest("Invalid inquiry ID.");
     }
 
-    await prisma.inquiry.delete({
-      where: { id: Number(id) },
-    });
-
+    await removeInquiry(id);
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("問い合わせ削除エラー:", error);
+    console.error("Inquiry delete error:", error);
     return NextResponse.json(
-      { error: "削除に失敗しました" },
+      { success: false, error: "Failed to delete inquiry." },
       { status: 500 }
     );
   }
