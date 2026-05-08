@@ -1,18 +1,26 @@
 import { prisma } from "@/lib/db";
 import { apiError, checkAdminAuth, sanitizeString } from "@/lib/apiUtils";
-import { NextResponse } from "next/server";
+import { checkRateLimit, rateLimitResponse, PUBLIC_API_LIMIT } from "@/lib/rateLimit";
+import logger from "@/lib/logger";
+import { NextRequest, NextResponse } from "next/server";
 
 // =====================
 // 一覧取得 (GET)
 // =====================
-export async function GET() {
+export async function GET(req: NextRequest) {
+  // レート制限チェック
+  const rateLimit = checkRateLimit(req, PUBLIC_API_LIMIT);
+  if (rateLimit.limited) {
+    return rateLimitResponse(rateLimit.resetTime);
+  }
+
   try {
     const blogs = await prisma.blog.findMany({
       orderBy: { createdAt: "desc" },
     });
     return NextResponse.json(blogs);
   } catch (error) {
-    console.error("GETエラー:", error);
+    logger.error("GETエラー:", error);
     return apiError("取得に失敗しました", 500);
   }
 }
@@ -55,7 +63,7 @@ export async function POST(request: Request) {
     });
     return NextResponse.json(newBlog);
   } catch (error) {
-    console.error("作成エラー:", error);
+    logger.error("作成エラー:", error);
     return apiError("作成に失敗しました", 500);
   }
 }

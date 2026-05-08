@@ -9,6 +9,7 @@ import {
   removeInquiry,
 } from "@/lib/contact/repository";
 import { ContactPayload, ContactRequestBody } from "@/lib/contact/types";
+import logger from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
 import xss from "xss";
 
@@ -68,7 +69,7 @@ export async function POST(req: NextRequest) {
       message: "Inquiry sent successfully.",
     });
   } catch (error) {
-    console.error("Inquiry send error:", error);
+    logger.error("Inquiry send error:", error);
     return NextResponse.json(
       { success: false, error: "Failed to send inquiry." },
       { status: 500 }
@@ -83,7 +84,7 @@ export async function GET() {
     const inquiries = await listInquiries();
     return NextResponse.json({ success: true, inquiries });
   } catch (error) {
-    console.error("Inquiry list error:", error);
+    logger.error("Inquiry list error:", error);
     return NextResponse.json(
       { success: false, error: "Failed to fetch inquiries." },
       { status: 500 }
@@ -104,7 +105,7 @@ export async function DELETE(req: NextRequest) {
     await removeInquiry(id);
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Inquiry delete error:", error);
+    logger.error("Inquiry delete error:", error);
     return NextResponse.json(
       { success: false, error: "Failed to delete inquiry." },
       { status: 500 }
