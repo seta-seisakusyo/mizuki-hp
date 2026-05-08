@@ -2,11 +2,12 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import type { BlogItem } from "@/types/models";
 
 export default function EditBlogPage() {
     const { id } = useParams();
     const router = useRouter();
-    const [blog, setBlog] = useState<any>(null);
+    const [blog, setBlog] = useState<BlogItem | null>(null);
     const [title, setTitle] = useState("");
     const [content, setContent] = useState("");
     const [imageUrl, setImageUrl] = useState<string | null>(null);

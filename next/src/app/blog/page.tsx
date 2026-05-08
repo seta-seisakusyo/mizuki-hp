@@ -147,7 +147,7 @@ export default async function BlogListPage({ searchParams }: { searchParams: Pro
                     </Link>
                     {archives.map(([key, count]) => {
                         const match = key.match(/(\d+)年(\d+)月/);
-                        if (!match) return null;
+                        if (!match || !match[1] || !match[2]) return null;
                         const year = match[1];
                         const month = match[2];
                         const isActive = filterYear === year && filterMonth === month;
@@ -244,7 +244,7 @@ export default async function BlogListPage({ searchParams }: { searchParams: Pro
                             </li>
                             {archives.map(([key, count]) => {
                                 const match = key.match(/(\d+)年(\d+)月/);
-                                if (!match) return null;
+                                if (!match || !match[1] || !match[2]) return null;
                                 const year = match[1];
                                 const month = match[2];
                                 return (
