@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { apiError, checkAdminAuth, sanitizeString, sanitizeUrl, validateBlogInput } from "@/lib/apiUtils";
+import { apiError, checkAdminAuth, sanitizeString, sanitizeImageUrl, validateBlogInput } from "@/lib/apiUtils";
 import { checkRateLimit, rateLimitResponse, PUBLIC_API_LIMIT } from "@/lib/rateLimit";
 import logger from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
       data: {
         title: sanitizeString(title) ?? "",
         content: sanitizeString(content) ?? "",
-        imageUrl: sanitizeUrl(imageUrl),
+        imageUrl: sanitizeImageUrl(imageUrl),
         imagePosition: imagePosition || "center",
       },
     });

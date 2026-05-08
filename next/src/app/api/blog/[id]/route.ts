@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { apiError, checkAdminAuth, parseId, sanitizeString, sanitizeUrl } from "@/lib/apiUtils";
+import { apiError, checkAdminAuth, parseId, sanitizeString, sanitizeImageUrl, validateBlogTitle, validateBlogContent } from "@/lib/apiUtils";
 import logger from "@/lib/logger";
 import { NextResponse } from "next/server";
 import type { RouteParams, IdParams } from "@/types/models";
@@ -103,13 +103,27 @@ export async function PUT(
     imagePosition?: string;
   };
 
+  // 入力長バリデーション（個別フィールド検証：部分更新対応）
+  if (title !== undefined) {
+    const titleError = validateBlogTitle(title);
+    if (titleError) {
+      return apiError(titleError, 400);
+    }
+  }
+  if (content !== undefined) {
+    const contentError = validateBlogContent(content);
+    if (contentError) {
+      return apiError(contentError, 400);
+    }
+  }
+
   try {
     const updated = await prisma.blog.update({
       where: { id: parsedId },
       data: {
         title: title ? sanitizeString(title) : undefined,
         content: content ? sanitizeString(content) : undefined,
-        imageUrl: imageUrl !== undefined ? sanitizeUrl(imageUrl) : undefined,
+        imageUrl: imageUrl !== undefined ? sanitizeImageUrl(imageUrl) : undefined,
         imagePosition: imagePosition || undefined,
       },
     });
