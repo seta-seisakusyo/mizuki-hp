@@ -88,7 +88,7 @@ const NewsSection = () => {
         email: session.user.email || "",
         provider: null,
         image: session.user.image || null,
-        role: (session.user as any).role || "VIEWER",
+        role: (session.user as { role?: "ADMIN" | "EDITOR" | "VIEWER" }).role || "VIEWER",
       });
     }
   }, [status, session]);
@@ -261,7 +261,7 @@ const NewsSection = () => {
         </Box>
         {/* ニュースコンテンツ */}
         {paginatedData.map((news, index) => (
-          <Box key={index} sx={{ mb: 6 }}>
+          <Box component="article" key={news.id} sx={{ mb: 6 }}>
             <Typography
               variant="body2"
               color="textSecondary"
@@ -273,10 +273,12 @@ const NewsSection = () => {
               {news.title}
             </Typography>
             {news.contents.map((content, contentIndex) => {
-              const text = typeof content === "string" ? content : (content as any)?.value || "";
+              const text = typeof content === "string"
+                ? content
+                : (content as { value?: string })?.value || "";
               return (
                 <Typography
-                  key={contentIndex}
+                  key={`${news.id}-content-${contentIndex}`}
                   variant="body2"
                   color="textSecondary"
                   sx={{ marginBottom: 1 }}

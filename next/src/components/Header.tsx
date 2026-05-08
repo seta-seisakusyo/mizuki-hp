@@ -165,8 +165,8 @@ export default function Header() {
                   mt: 1,
                 }}
               >
-                {contentsList.map((content, index) => (
-                  <MenuItem key={index} onClick={handleMenuClose}>
+                {contentsList.map((content) => (
+                  <MenuItem key={content.href} onClick={handleMenuClose}>
                     <Link
                       href={content.href}
                       passHref
@@ -195,8 +195,8 @@ export default function Header() {
                   flexWrap: "nowrap",
                 }}
               >
-                {contentsList.map((content, index) => (
-                  <Link key={index} href={content.href} passHref>
+                {contentsList.map((content) => (
+                  <Link key={content.href} href={content.href} passHref>
                     <Button
                       sx={{
                         color: "text.primary",
