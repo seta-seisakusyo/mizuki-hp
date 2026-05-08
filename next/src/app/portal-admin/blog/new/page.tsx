@@ -61,8 +61,8 @@ export default function NewBlogPage() {
             }
 
             router.push("/portal-admin/blog");
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "投稿に失敗しました");
         } finally {
             setLoading(false);
         }

@@ -39,8 +39,8 @@ export default function NewNewsPage() {
       }
 
       router.push("/portal-admin/news");
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "作成に失敗しました");
     } finally {
       setLoading(false);
     }

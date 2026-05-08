@@ -9,6 +9,7 @@ import {
   removeInquiry,
 } from "@/lib/contact/repository";
 import { ContactPayload, ContactRequestBody } from "@/lib/contact/types";
+import logger from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
 import xss from "xss";
 
@@ -60,15 +61,21 @@ export async function POST(req: NextRequest) {
 
     // メール送信を先に実行（失敗時はDB保存もスキップ）
     await sendContactEmails(payload);
-    // メール送信成功後にDB保存（重複防止）
-    await createInquiry(payload);
+
+    // メール送信成功後にDB保存（DB保存失敗時もユーザーには成功を返す）
+    try {
+      await createInquiry(payload);
+    } catch (dbError) {
+      // DB保存失敗はログに記録するが、メール送信は成功しているのでユーザーには成功を返す
+      logger.error("Inquiry DB save error (email was sent successfully):", dbError);
+    }
 
     return NextResponse.json({
       success: true,
       message: "Inquiry sent successfully.",
     });
   } catch (error) {
-    console.error("Inquiry send error:", error);
+    logger.error("Inquiry send error:", error);
     return NextResponse.json(
       { success: false, error: "Failed to send inquiry." },
       { status: 500 }
@@ -76,14 +83,22 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  // レート制限（管理API用: 1分間に30リクエスト）
+  if (isRateLimited(req, { windowMs: 60_000, max: 30 })) {
+    return NextResponse.json(
+      { success: false, error: "Too many requests. Please try again later." },
+      { status: 429 }
+    );
+  }
+
   if (!(await isAdminUser())) return unauthorized();
 
   try {
     const inquiries = await listInquiries();
     return NextResponse.json({ success: true, inquiries });
   } catch (error) {
-    console.error("Inquiry list error:", error);
+    logger.error("Inquiry list error:", error);
     return NextResponse.json(
       { success: false, error: "Failed to fetch inquiries." },
       { status: 500 }
@@ -92,6 +107,14 @@ export async function GET() {
 }
 
 export async function DELETE(req: NextRequest) {
+  // レート制限（管理API用: 1分間に30リクエスト）
+  if (isRateLimited(req, { windowMs: 60_000, max: 30 })) {
+    return NextResponse.json(
+      { success: false, error: "Too many requests. Please try again later." },
+      { status: 429 }
+    );
+  }
+
   if (!(await isAdminUser())) return unauthorized();
 
   try {
@@ -104,7 +127,7 @@ export async function DELETE(req: NextRequest) {
     await removeInquiry(id);
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Inquiry delete error:", error);
+    logger.error("Inquiry delete error:", error);
     return NextResponse.json(
       { success: false, error: "Failed to delete inquiry." },
       { status: 500 }

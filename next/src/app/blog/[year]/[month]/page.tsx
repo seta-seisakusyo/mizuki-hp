@@ -1,16 +1,19 @@
 import Image from "next/image";
 import Link from "next/link";
 import { getJSTYearMonth, formatJSTDate } from "@/lib/date";
+import { prisma } from "@/lib/db";
+import type { BlogItem } from "@/types/models";
 
-async function getBlogs() {
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_BASE_URL}/api/blog`,
-    {
-      cache: "no-store",
-    }
-  );
-  if (!res.ok) throw new Error("ブログ一覧の取得に失敗しました");
-  return res.json();
+// サーバーコンポーネントから直接DBを参照（HTTP呼び出しを回避）
+async function getBlogs(): Promise<BlogItem[]> {
+  const blogs = await prisma.blog.findMany({
+    orderBy: { createdAt: "desc" },
+  });
+  return blogs.map((blog) => ({
+    ...blog,
+    createdAt: blog.createdAt.toISOString(),
+    updatedAt: blog.updatedAt.toISOString(),
+  }));
 }
 
 export default async function BlogMonthPage({
@@ -30,7 +33,7 @@ export default async function BlogMonthPage({
   const blogs = await getBlogs();
 
   // --- 月で絞り込み ---
-  const filtered = blogs.filter((blog: any) => {
+  const filtered = blogs.filter((blog: BlogItem) => {
     const jst = getJSTYearMonth(blog.createdAt);
     return (
       jst.year.toString() === year &&
@@ -56,7 +59,7 @@ export default async function BlogMonthPage({
         </p>
       ) : (
         <div className="grid gap-6 sm:gap-10 grid-cols-1 sm:grid-cols-2">
-          {currentBlogs.map((blog: any) => (
+          {currentBlogs.map((blog: BlogItem) => (
             <div key={blog.id} className="bg-white rounded-xl sm:rounded-2xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-all">
               {blog.imageUrl && (
                 <div className="relative w-full h-[200px] sm:h-[300px] overflow-hidden">

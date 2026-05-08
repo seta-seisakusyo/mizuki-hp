@@ -4,9 +4,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { formatJSTDate } from "@/lib/date";
+import type { BlogItem } from "@/types/models";
 
 export default function AdminBlogPage() {
-  const [blogs, setBlogs] = useState<any[]>([]);
+  const [blogs, setBlogs] = useState<BlogItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   // 投稿一覧を取得
@@ -28,7 +29,7 @@ export default function AdminBlogPage() {
   }, []);
 
   // 投稿削除
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: number) => {
     if (!confirm("この投稿を削除しますか？")) return;
 
     try {

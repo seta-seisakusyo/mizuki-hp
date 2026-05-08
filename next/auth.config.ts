@@ -1,9 +1,10 @@
-import { getPrismaClient } from "@/lib/db";
+import { prisma } from "@/lib/db";
 import bcryptjs from "bcryptjs";
 import { NextAuthConfig } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 
-const prisma = getPrismaClient();
+// 認証エラーメッセージ（ユーザー列挙を防ぐため統一）
+const AUTH_ERROR_MESSAGE = "メールアドレスまたはパスワードが正しくありません。";
 
 const authConfig = {
   pages: {
@@ -36,10 +37,15 @@ const authConfig = {
           },
         });
 
-        if (!user) throw new Error("ユーザーが存在しません。");
+        // タイミング攻撃防止: ユーザーが存在しない場合もダミーでbcrypt比較を実行
+        if (!user) {
+          // ダミーハッシュとの比較で一定時間を消費
+          await bcryptjs.compare(password, "$2a$10$dummyhashforuniformtiming");
+          throw new Error(AUTH_ERROR_MESSAGE);
+        }
 
         const passwordMatch = await bcryptjs.compare(password, String(user.password || ""));
-        if (!passwordMatch) throw new Error("パスワードが間違っています。");
+        if (!passwordMatch) throw new Error(AUTH_ERROR_MESSAGE);
 
         return {
           id: user.id,

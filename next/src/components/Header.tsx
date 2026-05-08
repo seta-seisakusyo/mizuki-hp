@@ -20,7 +20,7 @@ import useMediaQuery from "@mui/material/useMediaQuery";
 import { SessionProvider, useSession } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 function StaffLoginLink({ scrolled, variant, onMenuClose }: { scrolled?: boolean; variant: "desktop" | "mobile"; onMenuClose?: () => void }) {
   const { status } = useSession();
@@ -62,24 +62,31 @@ export default function Header() {
   const isTablet = useMediaQuery(theme.breakpoints.down("md"));
   const { scrollContainerRef } = useSimpleBar();
 
+  const handleScroll = useCallback(() => {
+    const scrollContainer = scrollContainerRef.current;
+    if (scrollContainer) {
+      setScrolled(scrollContainer.scrollTop > 200);
+    }
+  }, [scrollContainerRef]);
+
   useEffect(() => {
     const scrollContainer = scrollContainerRef.current;
     if (!scrollContainer) return;
 
-    const handleScroll = () => setScrolled(scrollContainer.scrollTop > 200);
     scrollContainer.addEventListener("scroll", handleScroll);
     return () => scrollContainer.removeEventListener("scroll", handleScroll);
-  }, [scrollContainerRef]);
+  }, [scrollContainerRef, handleScroll]);
 
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+  const handleMenuOpen = useCallback((event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
-  };
-  const handleMenuClose = () => {
+  }, []);
+
+  const handleMenuClose = useCallback(() => {
     setAnchorEl(null);
-  };
+  }, []);
 
   const contentsList = [
-    { title: "クリニック概要", href: "/discription" },
+    { title: "クリニック概要", href: "/description" },
     { title: "診療案内", href: "/consultation" },
     { title: "内視鏡検査", href: "/endoscopy" },
     { title: "在宅医療", href: "/home-medical-care" },
@@ -165,8 +172,8 @@ export default function Header() {
                   mt: 1,
                 }}
               >
-                {contentsList.map((content, index) => (
-                  <MenuItem key={index} onClick={handleMenuClose}>
+                {contentsList.map((content) => (
+                  <MenuItem key={content.href} onClick={handleMenuClose}>
                     <Link
                       href={content.href}
                       passHref
@@ -195,8 +202,8 @@ export default function Header() {
                   flexWrap: "nowrap",
                 }}
               >
-                {contentsList.map((content, index) => (
-                  <Link key={index} href={content.href} passHref>
+                {contentsList.map((content) => (
+                  <Link key={content.href} href={content.href} passHref>
                     <Button
                       sx={{
                         color: "text.primary",

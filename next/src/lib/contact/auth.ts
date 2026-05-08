@@ -1,7 +1,5 @@
 import { auth } from "@/auth";
-import { getPrismaClient } from "@/lib/db";
-
-const prisma = getPrismaClient();
+import { prisma } from "@/lib/db";
 
 export async function isAdminUser(): Promise<boolean> {
   const session = await auth();

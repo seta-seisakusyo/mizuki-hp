@@ -67,8 +67,8 @@ export default function EditNewsPage() {
       }
 
       router.push("/portal-admin/news");
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "更新に失敗しました");
     } finally {
       setSaving(false);
     }

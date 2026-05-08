@@ -1,108 +1,135 @@
-import { auth } from "@/auth";
-import { getPrismaClient } from "@/lib/db";
-import xss from "xss";
+import { prisma } from "@/lib/db";
+import { apiError, checkAdminAuth, parseId, sanitizeString, sanitizeImageUrl, validateBlogTitle, validateBlogContent } from "@/lib/apiUtils";
+import logger from "@/lib/logger";
 import { NextResponse } from "next/server";
-
-const prisma = getPrismaClient();
+import type { RouteParams, IdParams } from "@/types/models";
 
 // =====================
-// 単一記事取得 API
+// 単一記事取得 API（管理者のみ）
 // =====================
-export async function GET(request: Request, context: any) {
-    const id = context?.params?.id;
-    const session = await auth();
+export async function GET(
+  request: Request,
+  { params }: RouteParams<IdParams>
+) {
+  const { id } = await params;
+  const parsedId = parseId(id);
 
-    if (!id) {
-        return NextResponse.json({ error: "IDが指定されていません" }, { status: 400 });
+  if (parsedId === null) {
+    return apiError("無効なIDです", 400);
+  }
+
+  // 管理者権限チェック（PUT/DELETEと統一）
+  const authResult = await checkAdminAuth();
+  if (!authResult.isAdmin) {
+    return authResult.response;
+  }
+
+  try {
+    const blog = await prisma.blog.findUnique({
+      where: { id: parsedId },
+    });
+
+    if (!blog) {
+      return apiError("記事が見つかりません", 404);
     }
 
-    if (!session) {
-        return NextResponse.json({ error: "未ログインです" }, { status: 401 });
-    }
-
-    try {
-        const blog = await prisma.blog.findUnique({
-            where: { id: Number(id) },
-        });
-
-        if (!blog) {
-            return NextResponse.json({ error: "記事が見つかりません" }, { status: 404 });
-        }
-
-        return NextResponse.json(blog);
-    } catch (error) {
-        console.error("取得エラー:", error);
-        return NextResponse.json({ error: "取得に失敗しました" }, { status: 500 });
-    }
+    return NextResponse.json(blog);
+  } catch (error) {
+    logger.error("取得エラー:", error);
+    return apiError("取得に失敗しました", 500);
+  }
 }
 
 // =====================
 // 削除 API
 // =====================
-export async function DELETE(request: Request, context: any) {
-    const { id } = await context.params;
-    const session = await auth();
+export async function DELETE(
+  request: Request,
+  { params }: RouteParams<IdParams>
+) {
+  const { id } = await params;
+  const parsedId = parseId(id);
 
-    if (!session?.user?.email) {
-        return NextResponse.json({ error: "未ログインです" }, { status: 401 });
-    }
+  if (parsedId === null) {
+    return apiError("無効なIDです", 400);
+  }
 
-    const user = await prisma.user.findUnique({
-        where: { email: session.user.email },
-        select: { role: true },
+  const authResult = await checkAdminAuth();
+  if (!authResult.isAdmin) {
+    return authResult.response;
+  }
+
+  try {
+    await prisma.blog.delete({
+      where: { id: parsedId },
     });
-
-    if (!user || user.role !== "ADMIN") {
-        return NextResponse.json({ error: "権限がありません" }, { status: 403 });
-    }
-
-    try {
-        await prisma.blog.delete({
-            where: { id: Number(id) },
-        });
-        return NextResponse.json({ message: "削除しました" });
-    } catch (error) {
-        console.error("削除エラー:", error);
-        return NextResponse.json({ error: "削除に失敗しました" }, { status: 500 });
-    }
+    return NextResponse.json({ message: "削除しました" });
+  } catch (error) {
+    logger.error("削除エラー:", error);
+    return apiError("削除に失敗しました", 500);
+  }
 }
 
 // =====================
 // 編集 API
 // =====================
-export async function PUT(request: Request, context: any) {
-    const id = context?.params?.id;
-    const session = await auth();
+export async function PUT(
+  request: Request,
+  { params }: RouteParams<IdParams>
+) {
+  const { id } = await params;
+  const parsedId = parseId(id);
 
-    if (!session?.user?.email) {
-        return NextResponse.json({ error: "未ログインです" }, { status: 401 });
+  if (parsedId === null) {
+    return apiError("無効なIDです", 400);
+  }
+
+  const authResult = await checkAdminAuth();
+  if (!authResult.isAdmin) {
+    return authResult.response;
+  }
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return apiError("無効なJSONです", 400);
+  }
+
+  const { title, content, imageUrl, imagePosition } = body as {
+    title?: string;
+    content?: string;
+    imageUrl?: string;
+    imagePosition?: string;
+  };
+
+  // 入力長バリデーション（個別フィールド検証：部分更新対応）
+  if (title !== undefined) {
+    const titleError = validateBlogTitle(title);
+    if (titleError) {
+      return apiError(titleError, 400);
     }
+  }
+  if (content !== undefined) {
+    const contentError = validateBlogContent(content);
+    if (contentError) {
+      return apiError(contentError, 400);
+    }
+  }
 
-    const user = await prisma.user.findUnique({
-        where: { email: session.user.email },
-        select: { role: true },
+  try {
+    const updated = await prisma.blog.update({
+      where: { id: parsedId },
+      data: {
+        title: title ? sanitizeString(title) : undefined,
+        content: content ? sanitizeString(content) : undefined,
+        imageUrl: imageUrl !== undefined ? sanitizeImageUrl(imageUrl) : undefined,
+        imagePosition: imagePosition || undefined,
+      },
     });
-
-    if (!user || user.role !== "ADMIN") {
-        return NextResponse.json({ error: "権限がありません" }, { status: 403 });
-    }
-
-    const body = await request.json();
-    const { title, content, imageUrl, imagePosition } = body;
-
-    try {
-        const updated = await prisma.blog.update({
-            where: { id: Number(id) },
-            data: {
-                title: title ? xss(title) : undefined,
-                content,
-                imageUrl: imageUrl !== undefined ? imageUrl : undefined,
-                imagePosition: imagePosition || undefined,
-            },
-        });
-        return NextResponse.json(updated);
-    } catch (error) {
-        console.error("更新エラー:", error);
-        return NextResponse.json({ error: "更新に失敗しました" }, { status: 500 });
-    }
+    return NextResponse.json(updated);
+  } catch (error) {
+    logger.error("更新エラー:", error);
+    return apiError("更新に失敗しました", 500);
+  }
 }

@@ -1,7 +1,5 @@
-import { getPrismaClient } from "@/lib/db";
+import { prisma } from "@/lib/db";
 import { ContactPayload } from "./types";
-
-const prisma = getPrismaClient();
 
 export async function createInquiry(payload: ContactPayload) {
   return prisma.inquiry.create({

@@ -8,7 +8,7 @@
  */
 
 module.exports = {
-  siteUrl: "https://mizuki-clinic.jp",
+  siteUrl: process.env.SITE_URL || "https://mizuki-clinic.online",
   generateRobotsTxt: true,
   sitemapSize: 5000,
 
