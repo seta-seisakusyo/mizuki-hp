@@ -1,7 +1,24 @@
 import Image from "next/image";
 import Link from "next/link";
+import type { Metadata } from "next";
+import type { BlogItem } from "@/types/models";
 
-async function getBlogs() {
+export const metadata: Metadata = {
+    title: "院長俳句展 | みずきクリニック",
+    description: "みずきクリニック院長が綴る季節の俳句コレクション。日々の診療の合間に感じた季節の移ろいを、俳句という形で表現しています。",
+};
+
+interface HaikuData {
+    id: string;
+    title: string;
+    content: string;
+    createdAt: string;
+    imageUrl: string | null;
+    imagePosition: string;
+    isOld?: boolean;
+}
+
+async function getBlogs(): Promise<BlogItem[]> {
     const res = await fetch(
         `${process.env.NEXT_PUBLIC_BASE_URL}/api/blog`,
         {
@@ -39,7 +56,7 @@ const oldHaikuData = [
     { title: "寒雀（かんすずめ）", content: "裸木に\nたわわに実る\n寒雀", date: "2024-01-24", imageUrl: "https://static.wixstatic.com/media/bc6929_e43fb027c3644151a4644f82ee080eae~mv2.jpg/v1/fill/w_750,h_1000,al_c,q_85,usm_0.66_1.00_0.01/bc6929_e43fb027c3644151a4644f82ee080eae~mv2.jpg" },
 ];
 
-function getOldHaiku() {
+function getOldHaiku(): HaikuData[] {
     return oldHaikuData.map((item) => ({
         id: `old-${item.title}`,
         title: item.title,
@@ -56,8 +73,21 @@ export default async function BlogListPage({ searchParams }: { searchParams: Pro
     const dbBlogs = await getBlogs();
     const oldHaiku = getOldHaiku();
 
-    // DB の俳句と旧サイトの俳句を統合し、日付順に並べる
-    const blogs = [...dbBlogs, ...oldHaiku].sort((a: any, b: any) =>
+    // DB の俳句と旧サイトの俳句を統合
+    const allBlogs: HaikuData[] = [
+        ...dbBlogs.map((blog) => ({
+            id: String(blog.id),
+            title: blog.title,
+            content: blog.content,
+            createdAt: new Date(blog.createdAt).toISOString(),
+            imageUrl: blog.imageUrl,
+            imagePosition: blog.imagePosition,
+        })),
+        ...oldHaiku,
+    ];
+
+    // 日付順に並べる
+    const blogs = allBlogs.sort((a, b) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
 
@@ -65,7 +95,7 @@ export default async function BlogListPage({ searchParams }: { searchParams: Pro
     const filterYear = params?.year;
     const filterMonth = params?.month;
     const filteredBlogs = (filterYear && filterMonth)
-        ? blogs.filter((blog: any) => {
+        ? blogs.filter((blog) => {
             const d = new Date(blog.createdAt);
             return d.getFullYear() === Number(filterYear) && (d.getMonth() + 1) === Number(filterMonth);
         })
@@ -79,15 +109,16 @@ export default async function BlogListPage({ searchParams }: { searchParams: Pro
     const currentBlogs = filteredBlogs.slice(startIndex, startIndex + perPage);
 
     // --- アーカイブグループ ---
-    const archiveMap = blogs.reduce((acc: any, blog: any) => {
+    const archiveMap = blogs.reduce<Record<string, number>>((acc, blog) => {
         const date = new Date(blog.createdAt);
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, "0");
         const key = `${year}年${month}月`;
-        acc[key] = acc[key] ? acc[key] + 1 : 1;
+        acc[key] = (acc[key] ?? 0) + 1;
         return acc;
     }, {});
-    const archives = Object.entries(archiveMap) as [string, number][]; // ←これを追加！
+    const archives = Object.entries(archiveMap) as [string, number][];
+
     return (
         <main className="min-h-screen font-['Yuji_Syuku']" style={{ background: "linear-gradient(180deg, #f7f3eb 0%, #ede8df 100%)" }}>
             {/* ヘッダー装飾 */}
@@ -133,8 +164,8 @@ export default async function BlogListPage({ searchParams }: { searchParams: Pro
             <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-10 sm:pb-16 grid lg:grid-cols-[1fr_240px] gap-6 lg:gap-10">
                 {/* 俳句カード一覧 */}
                 <div className="grid gap-4 sm:gap-8 grid-cols-2 sm:grid-cols-2 lg:grid-cols-3">
-                    {currentBlogs.map((blog: any) => (
-                        <div
+                    {currentBlogs.map((blog) => (
+                        <article
                             key={blog.id}
                             className="group relative overflow-hidden rounded-sm shadow-md hover:shadow-xl transition-all duration-500"
                             style={{ background: "linear-gradient(180deg, #fffef9 0%, #f5f0e6 100%)" }}
@@ -166,8 +197,8 @@ export default async function BlogListPage({ searchParams }: { searchParams: Pro
                                             className="text-sm sm:text-base text-gray-800 font-bold leading-relaxed"
                                             style={{ writingMode: "vertical-rl" }}
                                         >
-                                            {blog.content.split("\n").map((line: string, i: number) => (
-                                                <p key={i} style={{ marginTop: i === 1 ? "1.5em" : i === 2 ? "3em" : 0 }}>
+                                            {blog.content.split("\n").map((line, i) => (
+                                                <p key={`${blog.id}-line-${i}`} style={{ marginTop: i === 1 ? "1.5em" : i === 2 ? "3em" : 0 }}>
                                                     {line}
                                                 </p>
                                             ))}
@@ -184,17 +215,17 @@ export default async function BlogListPage({ searchParams }: { searchParams: Pro
                                 </div>
 
                                 {/* 日付（横書き） */}
-                                <div className="mt-2 sm:mt-3 text-[10px] sm:text-xs text-gray-400">
+                                <time className="mt-2 sm:mt-3 text-[10px] sm:text-xs text-gray-400">
                                     {new Date(blog.createdAt).toLocaleDateString("ja-JP")}
-                                </div>
+                                </time>
                             </div>
-                        </div>
+                        </article>
                     ))}
                 </div>
 
                 {/* 右側：アーカイブ（デスクトップのみ） */}
                 <aside className="hidden lg:block h-fit sticky top-6">
-                    <div className="rounded-sm p-5 shadow-sm border border-gray-200" style={{ background: "#fffef9" }}>
+                    <nav className="rounded-sm p-5 shadow-sm border border-gray-200" style={{ background: "#fffef9" }}>
                         <h2 className="text-center text-sm font-semibold text-gray-600 tracking-[0.3em] mb-4 pb-2 border-b border-gray-200">
                             句 集
                         </h2>
@@ -225,13 +256,13 @@ export default async function BlogListPage({ searchParams }: { searchParams: Pro
                                 );
                             })}
                         </ul>
-                    </div>
+                    </nav>
                 </aside>
             </div>
 
             {/* ページネーション */}
             {totalPages > 1 && (
-                <div className="flex justify-center items-center pb-10 sm:pb-16 gap-1.5 sm:gap-2 px-4 text-gray-700 font-['Yuji_Syuku']">
+                <nav className="flex justify-center items-center pb-10 sm:pb-16 gap-1.5 sm:gap-2 px-4 text-gray-700 font-['Yuji_Syuku']" aria-label="ページネーション">
                     {currentPage > 1 && (
                         <Link
                             href={`/blog?page=${currentPage - 1}`}
@@ -249,6 +280,7 @@ export default async function BlogListPage({ searchParams }: { searchParams: Pro
                                 ? "bg-green-800 text-white border-green-800"
                                 : "border-gray-300 hover:bg-white"
                                 }`}
+                            aria-current={page === currentPage ? "page" : undefined}
                         >
                             {page}
                         </Link>
@@ -262,7 +294,7 @@ export default async function BlogListPage({ searchParams }: { searchParams: Pro
                             次へ
                         </Link>
                     )}
-                </div>
+                </nav>
             )}
         </main>
     );

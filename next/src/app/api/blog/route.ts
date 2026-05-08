@@ -1,63 +1,61 @@
-import { auth } from "@/auth";
-import { getPrismaClient } from "@/lib/db";
-import xss from "xss";
+import { prisma } from "@/lib/db";
+import { apiError, checkAdminAuth, sanitizeString } from "@/lib/apiUtils";
 import { NextResponse } from "next/server";
-
-const prisma = getPrismaClient();
 
 // =====================
 // 一覧取得 (GET)
 // =====================
 export async function GET() {
-    try {
-        const blogs = await prisma.blog.findMany({
-            orderBy: { createdAt: "desc" },
-        });
-        return NextResponse.json(blogs);
-    } catch (error) {
-        console.error("GETエラー:", error);
-        return NextResponse.json({ error: "取得に失敗しました" }, { status: 500 });
-    }
+  try {
+    const blogs = await prisma.blog.findMany({
+      orderBy: { createdAt: "desc" },
+    });
+    return NextResponse.json(blogs);
+  } catch (error) {
+    console.error("GETエラー:", error);
+    return apiError("取得に失敗しました", 500);
+  }
 }
 
 // =====================
 // 投稿作成 (POST)
 // =====================
 export async function POST(request: Request) {
-    const session = await auth();
+  const authResult = await checkAdminAuth();
+  if (!authResult.isAdmin) {
+    return authResult.response;
+  }
 
-    if (!session?.user?.email) {
-        return NextResponse.json({ error: "未ログインです" }, { status: 401 });
-    }
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return apiError("無効なJSONです", 400);
+  }
 
-    const user = await prisma.user.findUnique({
-        where: { email: session.user.email },
-        select: { role: true },
+  const { title, content, imageUrl, imagePosition } = body as {
+    title?: string;
+    content?: string;
+    imageUrl?: string;
+    imagePosition?: string;
+  };
+
+  if (!title || !content) {
+    return apiError("タイトルと本文は必須です", 400);
+  }
+
+  try {
+    const newBlog = await prisma.blog.create({
+      data: {
+        title: sanitizeString(title) ?? "",
+        content: sanitizeString(content) ?? "",
+        imageUrl: imageUrl || null,
+        imagePosition: imagePosition || "center",
+      },
     });
-
-    if (!user || user.role !== "ADMIN") {
-        return NextResponse.json({ error: "権限がありません" }, { status: 403 });
-    }
-
-    const body = await request.json();
-    const { title, content, imageUrl, imagePosition } = body;
-
-    if (!title || !content) {
-        return NextResponse.json({ error: "タイトルと本文は必須です" }, { status: 400 });
-    }
-
-    try {
-        const newBlog = await prisma.blog.create({
-            data: {
-                title: xss(title),
-                content,
-                imageUrl: imageUrl || null,
-                imagePosition: imagePosition || "center",
-            },
-        });
-        return NextResponse.json(newBlog);
-    } catch (error) {
-        console.error("作成エラー:", error);
-        return NextResponse.json({ error: "作成に失敗しました" }, { status: 500 });
-    }
+    return NextResponse.json(newBlog);
+  } catch (error) {
+    console.error("作成エラー:", error);
+    return apiError("作成に失敗しました", 500);
+  }
 }

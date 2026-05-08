@@ -1,9 +1,6 @@
-import { auth } from "@/auth";
-import { getPrismaClient } from "@/lib/db";
-import xss from "xss";
+import { prisma } from "@/lib/db";
+import { apiError, checkAdminAuth, sanitizeString, sanitizeContents, sanitizeUrl } from "@/lib/apiUtils";
 import { NextRequest, NextResponse } from "next/server";
-
-const prisma = getPrismaClient();
 
 export async function GET() {
   try {
@@ -13,50 +10,54 @@ export async function GET() {
     return NextResponse.json({ news });
   } catch (error) {
     console.error("お知らせ取得エラー:", error);
-    return NextResponse.json({ error: "取得に失敗しました" }, { status: 500 });
+    return apiError("取得に失敗しました", 500);
   }
 }
 
 export async function POST(req: NextRequest) {
-  const session = await auth();
-  if (!session?.user?.email) {
-    return NextResponse.json({ error: "未ログインです" }, { status: 401 });
+  const authResult = await checkAdminAuth();
+  if (!authResult.isAdmin) {
+    return authResult.response;
   }
 
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
-    select: { role: true },
-  });
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return apiError("無効なJSONです", 400);
+  }
 
-  if (!user || user.role !== "ADMIN") {
-    return NextResponse.json({ error: "権限がありません" }, { status: 403 });
+  const { date, title, contents, url, color, pinned } = body as {
+    date?: string;
+    title?: string;
+    contents?: unknown;
+    url?: string;
+    color?: string;
+    pinned?: boolean;
+  };
+
+  if (!date || !title || !contents) {
+    return apiError("日付、タイトル、内容は必須です", 400);
   }
 
   try {
-    const body = await req.json();
-    const { date, title, contents, url, color, pinned } = body;
-
-    if (!date || !title || !contents) {
-      return NextResponse.json(
-        { error: "日付、タイトル、内容は必須です" },
-        { status: 400 }
-      );
-    }
+    const sanitizedTitle = sanitizeString(title);
+    const sanitizedContents = sanitizeContents(contents);
 
     const news = await prisma.news.create({
       data: {
         date: new Date(date),
-        title: xss(title),
-        contents,
-        url: url ? xss(url) : null,
+        title: sanitizedTitle ?? "",
+        contents: sanitizedContents,
+        url: url ? sanitizeUrl(url) : null,
         color: color || "black",
-        pinned: pinned || false,
+        pinned: pinned ?? false,
       },
     });
 
     return NextResponse.json(news);
   } catch (error) {
     console.error("お知らせ作成エラー:", error);
-    return NextResponse.json({ error: "作成に失敗しました" }, { status: 500 });
+    return apiError("作成に失敗しました", 500);
   }
 }

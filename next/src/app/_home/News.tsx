@@ -78,7 +78,7 @@ export default function News() {
               <Box sx={{ mt: 0.5 }}>
                 {news.contents.map((line, i) => (
                   <Typography
-                    key={i}
+                    key={`${news.id}-line-${i}`}
                     variant="body2"
                     sx={{
                       fontSize: "0.85rem",
