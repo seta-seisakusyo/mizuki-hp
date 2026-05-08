@@ -16,8 +16,3 @@ export const prisma =
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
 }
-
-/**
- * @deprecated Use `prisma` directly instead
- */
-export const getPrismaClient = () => prisma;

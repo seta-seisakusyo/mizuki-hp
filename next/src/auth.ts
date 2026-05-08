@@ -1,9 +1,7 @@
-import { getPrismaClient } from "@/lib/db";
+import { prisma } from "@/lib/db";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import NextAuth from "next-auth";
 import authConfig from "../auth.config";
-
-const prisma = getPrismaClient();
 
 const useSecureCookies = process.env.NEXTAUTH_URL?.startsWith("https://") ?? false;
 

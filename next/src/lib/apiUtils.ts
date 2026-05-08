@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { getPrismaClient } from "@/lib/db";
+import { prisma } from "@/lib/db";
 import xss from "xss";
+import { INPUT_LIMITS } from "@/lib/validation";
 
-const prisma = getPrismaClient();
+// 許可されたニュースカラー
+const ALLOWED_NEWS_COLORS = ["black", "red", "blue", "green", "orange"] as const;
+export type NewsColor = typeof ALLOWED_NEWS_COLORS[number];
 
 /**
  * APIエラーレスポンスを生成
@@ -29,12 +32,16 @@ export function parseId(id: string): number | null {
   return parsed;
 }
 
+// 管理画面へのアクセスを許可するロール（middlewareと統一）
+const ADMIN_ROLES = ["ADMIN", "EDITOR"] as const;
+
 /**
  * 管理者権限をチェック
+ * ADMIN または EDITOR ロールを許可（middlewareと統一）
  * @returns ユーザーが管理者の場合はtrue、そうでなければエラーレスポンス
  */
 export async function checkAdminAuth(): Promise<
-  | { isAdmin: true; email: string }
+  | { isAdmin: true; email: string; role: string }
   | { isAdmin: false; response: NextResponse }
 > {
   const session = await auth();
@@ -51,14 +58,14 @@ export async function checkAdminAuth(): Promise<
     select: { role: true },
   });
 
-  if (!user || user.role !== "ADMIN") {
+  if (!user || !ADMIN_ROLES.includes(user.role as typeof ADMIN_ROLES[number])) {
     return {
       isAdmin: false,
       response: apiError("権限がありません", 403),
     };
   }
 
-  return { isAdmin: true, email: session.user.email };
+  return { isAdmin: true, email: session.user.email, role: user.role };
 }
 
 /**
@@ -130,4 +137,150 @@ export function sanitizeUrl(value: string | undefined): string | null {
     // 無効なURL形式
     return null;
   }
+}
+
+/**
+ * 画像URLを検証してサニタイズ
+ * /uploads/ で始まる相対パスまたは http(s):// の絶対URLを許可
+ * 日本語などUnicodeファイル名もサポート（既存データ対応）
+ * @returns サニタイズされたURL、または無効な場合はnull
+ */
+export function sanitizeImageUrl(value: string | undefined): string | null {
+  if (typeof value !== "string" || value.trim() === "") {
+    return null;
+  }
+
+  const trimmed = value.trim();
+
+  // /uploads/ で始まる相対パスを許可
+  if (trimmed.startsWith("/uploads/")) {
+    // URLデコードしてパストラバーサル攻撃をチェック
+    let decoded: string;
+    try {
+      decoded = decodeURIComponent(trimmed);
+    } catch {
+      // デコード失敗は無効なURL
+      return null;
+    }
+
+    // パストラバーサル攻撃を防ぐ（デコード後にチェック）
+    if (decoded.includes("..") || decoded.includes("//")) {
+      return null;
+    }
+
+    // /uploads/ から始まり、nullバイトを含まないことを確認
+    if (!decoded.startsWith("/uploads/") || decoded.includes("\0")) {
+      return null;
+    }
+
+    // XSSサニタイズして返す（元のエンコード済み値を使用）
+    return xss(trimmed);
+  }
+
+  // 絶対URLの場合は既存のsanitizeUrlを使用
+  return sanitizeUrl(value);
+}
+
+/**
+ * ニュースのカラーを検証
+ * ホワイトリストにないカラーはデフォルト値に変換
+ */
+export function validateNewsColor(color: string | undefined): NewsColor {
+  if (color && ALLOWED_NEWS_COLORS.includes(color as NewsColor)) {
+    return color as NewsColor;
+  }
+  return "black";
+}
+
+/**
+ * 日付文字列を検証
+ * 合理的な範囲（過去10年〜未来1年）内かチェック
+ */
+export function validateDate(dateStr: string): Date | null {
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) {
+      return null;
+    }
+
+    const now = new Date();
+    const minDate = new Date(now.getFullYear() - 10, 0, 1);
+    const maxDate = new Date(now.getFullYear() + 1, 11, 31);
+
+    if (date < minDate || date > maxDate) {
+      return null;
+    }
+
+    return date;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * ブログ入力の長さを検証
+ */
+export function validateBlogInput(title: string, content: string): string | null {
+  if (title.length > INPUT_LIMITS.BLOG_TITLE_MAX) {
+    return `タイトルは${INPUT_LIMITS.BLOG_TITLE_MAX}文字以内で入力してください。`;
+  }
+  if (content.length > INPUT_LIMITS.BLOG_CONTENT_MAX) {
+    return `本文は${INPUT_LIMITS.BLOG_CONTENT_MAX}文字以内で入力してください。`;
+  }
+  return null;
+}
+
+/**
+ * ニュース入力の長さを検証（POST用：両方必須）
+ */
+export function validateNewsInput(title: string, contents: unknown): string | null {
+  if (title.length > INPUT_LIMITS.NEWS_TITLE_MAX) {
+    return `タイトルは${INPUT_LIMITS.NEWS_TITLE_MAX}文字以内で入力してください。`;
+  }
+  const contentsStr = JSON.stringify(contents);
+  if (contentsStr.length > INPUT_LIMITS.NEWS_CONTENT_MAX) {
+    return `内容は${INPUT_LIMITS.NEWS_CONTENT_MAX}文字以内で入力してください。`;
+  }
+  return null;
+}
+
+/**
+ * ニュースタイトルの長さを個別検証（PUT用：部分更新対応）
+ */
+export function validateNewsTitle(title: string): string | null {
+  if (title.length > INPUT_LIMITS.NEWS_TITLE_MAX) {
+    return `タイトルは${INPUT_LIMITS.NEWS_TITLE_MAX}文字以内で入力してください。`;
+  }
+  return null;
+}
+
+/**
+ * ニュース内容の長さを個別検証（PUT用：部分更新対応）
+ */
+export function validateNewsContents(contents: unknown): string | null {
+  const contentsStr = JSON.stringify(contents);
+  if (contentsStr.length > INPUT_LIMITS.NEWS_CONTENT_MAX) {
+    return `内容は${INPUT_LIMITS.NEWS_CONTENT_MAX}文字以内で入力してください。`;
+  }
+  return null;
+}
+
+/**
+ * ブログタイトルの長さを個別検証（PUT用：部分更新対応）
+ */
+export function validateBlogTitle(title: string): string | null {
+  if (title.length > INPUT_LIMITS.BLOG_TITLE_MAX) {
+    return `タイトルは${INPUT_LIMITS.BLOG_TITLE_MAX}文字以内で入力してください。`;
+  }
+  return null;
+}
+
+/**
+ * ブログ本文の長さを個別検証（PUT用：部分更新対応）
+ */
+export function validateBlogContent(content: string): string | null {
+  if (content.length > INPUT_LIMITS.BLOG_CONTENT_MAX) {
+    return `本文は${INPUT_LIMITS.BLOG_CONTENT_MAX}文字以内で入力してください。`;
+  }
+  return null;
 }

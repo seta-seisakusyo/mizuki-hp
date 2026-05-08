@@ -83,7 +83,15 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  // レート制限（管理API用: 1分間に30リクエスト）
+  if (isRateLimited(req, { windowMs: 60_000, max: 30 })) {
+    return NextResponse.json(
+      { success: false, error: "Too many requests. Please try again later." },
+      { status: 429 }
+    );
+  }
+
   if (!(await isAdminUser())) return unauthorized();
 
   try {
@@ -99,6 +107,14 @@ export async function GET() {
 }
 
 export async function DELETE(req: NextRequest) {
+  // レート制限（管理API用: 1分間に30リクエスト）
+  if (isRateLimited(req, { windowMs: 60_000, max: 30 })) {
+    return NextResponse.json(
+      { success: false, error: "Too many requests. Please try again later." },
+      { status: 429 }
+    );
+  }
+
   if (!(await isAdminUser())) return unauthorized();
 
   try {

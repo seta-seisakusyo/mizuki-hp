@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { apiError, checkAdminAuth, parseId, sanitizeString, sanitizeContents, sanitizeUrl } from "@/lib/apiUtils";
+import { apiError, checkAdminAuth, parseId, sanitizeString, sanitizeContents, sanitizeUrl, validateDate, validateNewsTitle, validateNewsContents, validateNewsColor } from "@/lib/apiUtils";
 import logger from "@/lib/logger";
 import { NextResponse } from "next/server";
 import type { RouteParams, IdParams } from "@/types/models";
@@ -63,16 +63,40 @@ export async function PUT(
     pinned?: boolean;
   };
 
+  // 入力長バリデーション（個別フィールド検証：部分更新対応）
+  if (title !== undefined) {
+    const titleError = validateNewsTitle(title);
+    if (titleError) {
+      return apiError(titleError, 400);
+    }
+  }
+  if (contents !== undefined) {
+    const contentsError = validateNewsContents(contents);
+    if (contentsError) {
+      return apiError(contentsError, 400);
+    }
+  }
+
+  // 日付バリデーション
+  let validatedDate: Date | undefined;
+  if (date) {
+    const parsedDate = validateDate(date);
+    if (!parsedDate) {
+      return apiError("無効な日付です", 400);
+    }
+    validatedDate = parsedDate;
+  }
+
   try {
     const updated = await prisma.news.update({
       where: { id: parsedId },
       data: {
         title: sanitizeString(title),
-        date: date ? new Date(date) : undefined,
+        date: validatedDate,
         contents: contents !== undefined ? sanitizeContents(contents) : undefined,
         url: url !== undefined ? (url ? sanitizeUrl(url) : null) : undefined,
-        color: color || "black",
-        pinned: pinned ?? false,
+        color: color !== undefined ? validateNewsColor(color) : undefined,
+        pinned: pinned ?? undefined,
       },
     });
     return NextResponse.json(updated);

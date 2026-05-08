@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import type { BlogItem } from "@/types/models";
 import { getJSTYearMonth, formatJSTDate } from "@/lib/date";
+import { prisma } from "@/lib/db";
 
 export const metadata: Metadata = {
     title: "院長俳句展 | みずきクリニック",
@@ -19,15 +20,16 @@ interface HaikuData {
     isOld?: boolean;
 }
 
+// サーバーコンポーネントから直接DBを参照（HTTP呼び出しを回避）
 async function getBlogs(): Promise<BlogItem[]> {
-    const res = await fetch(
-        `${process.env.NEXT_PUBLIC_BASE_URL}/api/blog`,
-        {
-          cache: "no-store",
-        }
-      );
-    if (!res.ok) throw new Error("ブログ一覧の取得に失敗しました");
-    return res.json();
+    const blogs = await prisma.blog.findMany({
+        orderBy: { createdAt: "desc" },
+    });
+    return blogs.map((blog) => ({
+        ...blog,
+        createdAt: blog.createdAt.toISOString(),
+        updatedAt: blog.updatedAt.toISOString(),
+    }));
 }
 
 // 旧サイト（mizuki-clinic.jp）の俳句データ（2024/01〜）
@@ -145,8 +147,9 @@ export default async function BlogListPage({ searchParams }: { searchParams: Pro
                     </Link>
                     {archives.map(([key, count]) => {
                         const match = key.match(/(\d+)年(\d+)月/);
-                        const year = match?.[1];
-                        const month = match?.[2];
+                        if (!match) return null;
+                        const year = match[1];
+                        const month = match[2];
                         const isActive = filterYear === year && filterMonth === month;
                         return (
                             <Link
@@ -241,8 +244,9 @@ export default async function BlogListPage({ searchParams }: { searchParams: Pro
                             </li>
                             {archives.map(([key, count]) => {
                                 const match = key.match(/(\d+)年(\d+)月/);
-                                const year = match?.[1];
-                                const month = match?.[2];
+                                if (!match) return null;
+                                const year = match[1];
+                                const month = match[2];
                                 return (
                                     <li key={key}>
                                         <Link

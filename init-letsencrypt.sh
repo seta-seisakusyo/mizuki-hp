@@ -1,7 +1,7 @@
 #!/bin/bash
 
 domain="mizuki-clinic.jp"
-email=""  # ここにメールアドレスを設定
+email="info@mizuki-clinic.jp"  # 証明書更新通知用メールアドレス
 staging=0 # テスト時は1に設定（Let's Encryptのレート制限回避）
 
 if [ -z "$email" ]; then

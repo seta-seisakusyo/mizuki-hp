@@ -1,4 +1,5 @@
 import { fetchSecret } from "@/lib/fetchSecrets";
+import logger from "@/lib/logger";
 
 export async function verifyContactRecaptcha(token: string): Promise<boolean> {
   // 開発環境のみバイパス可能（本番環境では無視）
@@ -30,15 +31,17 @@ export async function verifyContactRecaptcha(token: string): Promise<boolean> {
     "error-codes"?: string[];
   };
 
-  // デバッグ用ログ出力
-  console.log("[reCAPTCHA] Response:", JSON.stringify(data));
-  console.log("[reCAPTCHA] success:", data.success);
-  console.log("[reCAPTCHA] score:", data.score);
-  console.log("[reCAPTCHA] action:", data.action);
-  console.log("[reCAPTCHA] error-codes:", data["error-codes"]);
-
   const result = Boolean(data.success) && Number(data.score ?? 0) >= 0.5 && data.action === "contact";
-  console.log("[reCAPTCHA] Final result:", result);
+
+  // 検証失敗時のみログ出力（デバッグ用の詳細情報は本番では出さない）
+  if (!result) {
+    logger.warn("[reCAPTCHA] Verification failed", {
+      success: data.success,
+      score: data.score,
+      action: data.action,
+      errorCodes: data["error-codes"],
+    });
+  }
 
   return result;
 }

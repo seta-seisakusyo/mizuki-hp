@@ -27,9 +27,9 @@ export interface BlogItem {
   title: string;
   content: string;
   imageUrl: string | null;
-  imagePosition: "left" | "center" | "right";
-  createdAt: Date;
-  updatedAt: Date;
+  imagePosition: string;
+  createdAt: Date | string;
+  updatedAt: Date | string;
 }
 
 // API Response関連

@@ -64,8 +64,8 @@ const ProfileConsoleModal = () => {
               </Typography>
             </Box>
             <Box>
-              {menuItems.map((item, index) => (
-                <MenuItem key={index} onClick={() => navigateTo(item.path)}>
+              {menuItems.map((item) => (
+                <MenuItem key={item.path} onClick={() => navigateTo(item.path)}>
                   {item.label}
                 </MenuItem>
               ))}

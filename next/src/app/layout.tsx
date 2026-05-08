@@ -40,9 +40,9 @@ export const metadata: Metadata = {
       "石川県金沢市にある内科・消化器内科クリニック。内視鏡検査、在宅医療、オンライン診療など、地域の皆様の健康をサポートします。",
     images: [
       {
-        url: `${siteUrl}/og-image.jpg`,
-        width: 1200,
-        height: 630,
+        url: `${siteUrl}/mizuki_logo_transparent.jpg`,
+        width: 400,
+        height: 400,
         alt: "みずきクリニック",
       },
     ],
@@ -52,7 +52,7 @@ export const metadata: Metadata = {
     title: "みずきクリニック | 石川県金沢市の内科・消化器内科",
     description:
       "石川県金沢市にある内科・消化器内科クリニック。内視鏡検査、在宅医療、オンライン診療など。",
-    images: [`${siteUrl}/og-image.jpg`],
+    images: [`${siteUrl}/mizuki_logo_transparent.jpg`],
   },
   robots: {
     index: true,

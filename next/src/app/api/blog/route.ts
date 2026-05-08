@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { apiError, checkAdminAuth, sanitizeString } from "@/lib/apiUtils";
+import { apiError, checkAdminAuth, sanitizeString, sanitizeImageUrl, validateBlogInput } from "@/lib/apiUtils";
 import { checkRateLimit, rateLimitResponse, PUBLIC_API_LIMIT } from "@/lib/rateLimit";
 import logger from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
@@ -52,12 +52,18 @@ export async function POST(request: Request) {
     return apiError("タイトルと本文は必須です", 400);
   }
 
+  // 入力長バリデーション
+  const lengthError = validateBlogInput(title, content);
+  if (lengthError) {
+    return apiError(lengthError, 400);
+  }
+
   try {
     const newBlog = await prisma.blog.create({
       data: {
         title: sanitizeString(title) ?? "",
         content: sanitizeString(content) ?? "",
-        imageUrl: imageUrl || null,
+        imageUrl: sanitizeImageUrl(imageUrl),
         imagePosition: imagePosition || "center",
       },
     });
