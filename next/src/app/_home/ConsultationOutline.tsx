@@ -9,7 +9,7 @@ const contents = [
     {
         title: "診療案内",
         color: "#42a5f5",
-        image: "/discription/discription5.png",
+        image: "/description/description5.png",
         link: "/consultation",
     },
     {

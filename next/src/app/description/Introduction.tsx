@@ -1,8 +1,8 @@
-import Message01 from '@/app/discription/Message01';
-import Message02 from '@/app/discription/Message02';
-import Message03 from '@/app/discription/Message03';
-import Message04 from '@/app/discription/Message04';
-import Message05 from '@/app/discription/Message05';
+import Message01 from '@/app/description/Message01';
+import Message02 from '@/app/description/Message02';
+import Message03 from '@/app/description/Message03';
+import Message04 from '@/app/description/Message04';
+import Message05 from '@/app/description/Message05';
 import ResponsiveAdjustmentContainer from "@/components/ResponsiveAdjustmentContainer";
 import { themeConstants } from "@/theme/themeConstants";
 import React from "react";
@@ -31,7 +31,7 @@ const BusinessIntroduction: React.FC = () => {
         contentWidth={contentWidth}
         titles={titlesOfMessage01}
         rightComponent={<Message01 />}
-        imageSrc="/discription/discription1.png"
+        imageSrc="/description/description1.png"
         imageWidth={200}
       />
       {/* 診療報酬上の加算に係る掲示 */}
@@ -40,7 +40,7 @@ const BusinessIntroduction: React.FC = () => {
         contentWidth={contentWidth}
         titles={titlesOfMessage02}
         rightComponent={<Message02 />}
-        imageSrc="/discription/discription2.png"
+        imageSrc="/description/description2.png"
         imageWidth={200}
       />
       {/* 「機能強化型加算」のお知らせ */}
@@ -49,7 +49,7 @@ const BusinessIntroduction: React.FC = () => {
         contentWidth={contentWidth}
         titles={titlesOfMessage05}
         rightComponent={<Message05 />}
-        imageSrc="/discription/discription5.png"
+        imageSrc="/description/description5.png"
         imageWidth={200}
       />
       {/* 医療情報連携 */}
@@ -58,7 +58,7 @@ const BusinessIntroduction: React.FC = () => {
         contentWidth={contentWidth}
         titles={titlesOfMessage03}
         rightComponent={<Message03 />}
-        imageSrc="/discription/discription3.png"
+        imageSrc="/description/description3.png"
         imageWidth={200}
       />
       {/* 紹介先・提携病院 */}
@@ -67,7 +67,7 @@ const BusinessIntroduction: React.FC = () => {
         contentWidth={contentWidth}
         titles={titlesOfMessage04}
         rightComponent={<Message04 />}
-        imageSrc="/discription/discription4.png"
+        imageSrc="/description/description4.png"
         imageWidth={200}
       />
     </>

@@ -61,8 +61,14 @@ export async function POST(req: NextRequest) {
 
     // メール送信を先に実行（失敗時はDB保存もスキップ）
     await sendContactEmails(payload);
-    // メール送信成功後にDB保存（重複防止）
-    await createInquiry(payload);
+
+    // メール送信成功後にDB保存（DB保存失敗時もユーザーには成功を返す）
+    try {
+      await createInquiry(payload);
+    } catch (dbError) {
+      // DB保存失敗はログに記録するが、メール送信は成功しているのでユーザーには成功を返す
+      logger.error("Inquiry DB save error (email was sent successfully):", dbError);
+    }
 
     return NextResponse.json({
       success: true,
