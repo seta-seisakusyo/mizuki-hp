@@ -1,12 +1,11 @@
-import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
-import { apiError, checkAdminAuth, parseId, sanitizeString } from "@/lib/apiUtils";
+import { apiError, checkAdminAuth, parseId, sanitizeString, sanitizeUrl } from "@/lib/apiUtils";
 import logger from "@/lib/logger";
 import { NextResponse } from "next/server";
 import type { RouteParams, IdParams } from "@/types/models";
 
 // =====================
-// 単一記事取得 API
+// 単一記事取得 API（管理者のみ）
 // =====================
 export async function GET(
   request: Request,
@@ -19,9 +18,10 @@ export async function GET(
     return apiError("無効なIDです", 400);
   }
 
-  const session = await auth();
-  if (!session) {
-    return apiError("未ログインです", 401);
+  // 管理者権限チェック（PUT/DELETEと統一）
+  const authResult = await checkAdminAuth();
+  if (!authResult.isAdmin) {
+    return authResult.response;
   }
 
   try {
@@ -109,7 +109,7 @@ export async function PUT(
       data: {
         title: title ? sanitizeString(title) : undefined,
         content: content ? sanitizeString(content) : undefined,
-        imageUrl: imageUrl !== undefined ? imageUrl : undefined,
+        imageUrl: imageUrl !== undefined ? sanitizeUrl(imageUrl) : undefined,
         imagePosition: imagePosition || undefined,
       },
     });

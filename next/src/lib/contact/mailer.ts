@@ -18,6 +18,27 @@ function escapeHtml(value: string): string {
     .replace(/'/g, "&#39;");
 }
 
+/**
+ * メールテキスト本文用のサニタイズ
+ * ヘッダーインジェクション防止のため、改行を除去（または空白に置換）
+ * 本文中の改行は許可するが、ヘッダー区切りになりうる連続改行は制限
+ */
+function sanitizeTextForEmail(value: string): string {
+  // CRLFインジェクション防止: \r を削除
+  // 連続する改行を2つまでに制限（ヘッダー終了を偽装させない）
+  return value
+    .replace(/\r/g, "")
+    .replace(/\n{3,}/g, "\n\n");
+}
+
+/**
+ * メールヘッダー用のサニタイズ（Subject等）
+ * 改行文字を完全に除去
+ */
+function sanitizeHeaderValue(value: string): string {
+  return value.replace(/[\r\n]/g, " ").trim();
+}
+
 function getSmtpConfig(): SmtpConfig {
   const host = process.env.SMTP_HOST;
   const port = Number(process.env.SMTP_PORT) || 465;
@@ -44,11 +65,20 @@ export async function sendContactEmails(payload: ContactPayload): Promise<void> 
     },
   });
 
+  // HTML用サニタイズ
   const safeName = escapeHtml(payload.name);
   const safeEmail = escapeHtml(payload.email);
   const safePhone = escapeHtml(payload.phone || "-");
   const safeInquiryHtml = escapeHtml(payload.inquiry).replace(/\n/g, "<br />");
-  const safeNameForSubject = payload.name.replace(/[\r\n]/g, " ").trim();
+
+  // ヘッダー用サニタイズ（改行除去）
+  const safeNameForSubject = sanitizeHeaderValue(payload.name);
+
+  // テキスト本文用サニタイズ（ヘッダーインジェクション防止）
+  const safeNameText = sanitizeTextForEmail(payload.name);
+  const safeEmailText = sanitizeTextForEmail(payload.email);
+  const safePhoneText = sanitizeTextForEmail(payload.phone || "-");
+  const safeInquiryText = sanitizeTextForEmail(payload.inquiry);
 
   await Promise.all([
     transporter.sendMail({
@@ -57,11 +87,11 @@ export async function sendContactEmails(payload: ContactPayload): Promise<void> 
       subject: `[Contact] from ${safeNameForSubject}`,
       text: [
         "A new contact inquiry was submitted.",
-        `Name: ${payload.name}`,
-        `Email: ${payload.email}`,
-        `Phone: ${payload.phone || "-"}`,
+        `Name: ${safeNameText}`,
+        `Email: ${safeEmailText}`,
+        `Phone: ${safePhoneText}`,
         "",
-        payload.inquiry,
+        safeInquiryText,
       ].join("\n"),
       html: [
         "<h3>A new contact inquiry was submitted.</h3>",
@@ -76,12 +106,12 @@ export async function sendContactEmails(payload: ContactPayload): Promise<void> 
       to: payload.email,
       subject: "【自動返信】お問い合わせありがとうございます",
       text: [
-        `${payload.name} 様`,
+        `${safeNameText} 様`,
         "",
         "お問い合わせありがとうございます。",
         "以下の内容で受け付けました。",
         "",
-        payload.inquiry,
+        safeInquiryText,
       ].join("\n"),
       html: [
         `<p>${safeName} 様</p>`,

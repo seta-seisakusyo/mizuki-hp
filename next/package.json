@@ -4,8 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
-    "build": "next build && next-sitemap --config next-sitemap.config.cjs",
-    "postbuild": "next-sitemap --config next-sitemap.config.cjs",
+    "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "test": "vitest",

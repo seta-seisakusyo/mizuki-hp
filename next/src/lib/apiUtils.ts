@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { getPrismaClient } from "@/lib/db";
+import { prisma } from "@/lib/db";
 import xss from "xss";
+import { INPUT_LIMITS } from "@/lib/validation";
 
-const prisma = getPrismaClient();
+// 許可されたニュースカラー
+const ALLOWED_NEWS_COLORS = ["black", "red", "blue", "green", "orange"] as const;
+export type NewsColor = typeof ALLOWED_NEWS_COLORS[number];
 
 /**
  * APIエラーレスポンスを生成
@@ -130,4 +133,67 @@ export function sanitizeUrl(value: string | undefined): string | null {
     // 無効なURL形式
     return null;
   }
+}
+
+/**
+ * ニュースのカラーを検証
+ * ホワイトリストにないカラーはデフォルト値に変換
+ */
+export function validateNewsColor(color: string | undefined): NewsColor {
+  if (color && ALLOWED_NEWS_COLORS.includes(color as NewsColor)) {
+    return color as NewsColor;
+  }
+  return "black";
+}
+
+/**
+ * 日付文字列を検証
+ * 合理的な範囲（過去10年〜未来1年）内かチェック
+ */
+export function validateDate(dateStr: string): Date | null {
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) {
+      return null;
+    }
+
+    const now = new Date();
+    const minDate = new Date(now.getFullYear() - 10, 0, 1);
+    const maxDate = new Date(now.getFullYear() + 1, 11, 31);
+
+    if (date < minDate || date > maxDate) {
+      return null;
+    }
+
+    return date;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * ブログ入力の長さを検証
+ */
+export function validateBlogInput(title: string, content: string): string | null {
+  if (title.length > INPUT_LIMITS.BLOG_TITLE_MAX) {
+    return `タイトルは${INPUT_LIMITS.BLOG_TITLE_MAX}文字以内で入力してください。`;
+  }
+  if (content.length > INPUT_LIMITS.BLOG_CONTENT_MAX) {
+    return `本文は${INPUT_LIMITS.BLOG_CONTENT_MAX}文字以内で入力してください。`;
+  }
+  return null;
+}
+
+/**
+ * ニュース入力の長さを検証
+ */
+export function validateNewsInput(title: string, contents: unknown): string | null {
+  if (title.length > INPUT_LIMITS.NEWS_TITLE_MAX) {
+    return `タイトルは${INPUT_LIMITS.NEWS_TITLE_MAX}文字以内で入力してください。`;
+  }
+  const contentsStr = JSON.stringify(contents);
+  if (contentsStr.length > INPUT_LIMITS.NEWS_CONTENT_MAX) {
+    return `内容は${INPUT_LIMITS.NEWS_CONTENT_MAX}文字以内で入力してください。`;
+  }
+  return null;
 }

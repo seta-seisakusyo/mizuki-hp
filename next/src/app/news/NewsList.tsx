@@ -78,6 +78,7 @@ export default function NewsSection() {
       setTitle("");
       setContent("");
       setOccurrenceDate(null);
+      setCurrentPage(1); // 追加後は1ページ目にリセット
       fetchNews();
     } catch (error) {
       console.error("Failed to add news:", error);
@@ -224,9 +225,11 @@ export default function NewsSection() {
                 typeof contentItem === "string"
                   ? contentItem
                   : (contentItem as { value?: string })?.value || "";
+              // 一意のキーを生成（ID + インデックス + コンテンツハッシュ）
+              const contentKey = `${news.id}-${contentIndex}-${text.slice(0, 20)}`;
               return (
                 <Typography
-                  key={`${news.id}-content-${contentIndex}`}
+                  key={contentKey}
                   variant="body2"
                   color="textSecondary"
                   sx={{ marginBottom: 1 }}

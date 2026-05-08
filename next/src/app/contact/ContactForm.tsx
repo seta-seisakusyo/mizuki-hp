@@ -56,6 +56,7 @@ export default function ContactForm({ recaptchaSiteKey }: ContactFormProps) {
   const [modalContent, setModalContent] = useState<
     "loading" | "success" | "error"
   >("loading");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const closeModal = () => setIsModalOpen(false);
 
@@ -65,6 +66,9 @@ export default function ContactForm({ recaptchaSiteKey }: ContactFormProps) {
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // レースコンディション防止: 送信中は再送信を防ぐ
+    if (isSubmitting) return;
 
     const formData = {
       name: nameRef.current?.value || "",
@@ -79,6 +83,7 @@ export default function ContactForm({ recaptchaSiteKey }: ContactFormProps) {
     setErrors(validationErrors);
     if (Object.keys(validationErrors).length > 0) return;
 
+    setIsSubmitting(true);
     setIsModalOpen(true);
     setModalContent("loading");
 
@@ -87,6 +92,7 @@ export default function ContactForm({ recaptchaSiteKey }: ContactFormProps) {
       if (recaptchaSiteKey) {
         if (!window.grecaptcha) {
           setModalContent("error");
+          setIsSubmitting(false);
           return;
         }
 
@@ -112,11 +118,12 @@ export default function ContactForm({ recaptchaSiteKey }: ContactFormProps) {
       } else {
         setModalContent("error");
       }
-    } catch (error) {
-      console.error("送信エラー:", error);
+    } catch {
       setModalContent("error");
+    } finally {
+      setIsSubmitting(false);
     }
-  }, [recaptchaSiteKey]);
+  }, [recaptchaSiteKey, isSubmitting]);
 
   return (
     <BaseContainer>
