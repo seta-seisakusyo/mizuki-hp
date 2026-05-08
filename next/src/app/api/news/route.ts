@@ -1,15 +1,23 @@
 import { prisma } from "@/lib/db";
 import { apiError, checkAdminAuth, sanitizeString, sanitizeContents, sanitizeUrl } from "@/lib/apiUtils";
+import { checkRateLimit, rateLimitResponse, PUBLIC_API_LIMIT } from "@/lib/rateLimit";
+import logger from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  // レート制限チェック
+  const rateLimit = checkRateLimit(req, PUBLIC_API_LIMIT);
+  if (rateLimit.limited) {
+    return rateLimitResponse(rateLimit.resetTime);
+  }
+
   try {
     const news = await prisma.news.findMany({
       orderBy: [{ pinned: "desc" }, { date: "desc" }],
     });
     return NextResponse.json({ news });
   } catch (error) {
-    console.error("お知らせ取得エラー:", error);
+    logger.error("お知らせ取得エラー:", error);
     return apiError("取得に失敗しました", 500);
   }
 }
@@ -57,7 +65,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(news);
   } catch (error) {
-    console.error("お知らせ作成エラー:", error);
+    logger.error("お知らせ作成エラー:", error);
     return apiError("作成に失敗しました", 500);
   }
 }

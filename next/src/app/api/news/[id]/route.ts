@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { apiError, checkAdminAuth, parseId, sanitizeString, sanitizeContents, sanitizeUrl } from "@/lib/apiUtils";
+import logger from "@/lib/logger";
 import { NextResponse } from "next/server";
 import type { RouteParams, IdParams } from "@/types/models";
 
@@ -25,7 +26,7 @@ export async function GET(
 
     return NextResponse.json(news);
   } catch (error) {
-    console.error("取得エラー:", error);
+    logger.error("取得エラー:", error);
     return apiError("取得に失敗しました", 500);
   }
 }
@@ -76,7 +77,7 @@ export async function PUT(
     });
     return NextResponse.json(updated);
   } catch (error) {
-    console.error("更新エラー:", error);
+    logger.error("更新エラー:", error);
     return apiError("更新に失敗しました", 500);
   }
 }
@@ -103,7 +104,7 @@ export async function DELETE(
     });
     return NextResponse.json({ message: "削除しました" });
   } catch (error) {
-    console.error("削除エラー:", error);
+    logger.error("削除エラー:", error);
     return apiError("削除に失敗しました", 500);
   }
 }
