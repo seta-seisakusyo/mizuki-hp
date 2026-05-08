@@ -1,7 +1,7 @@
 "use client";
 
 import { Box, Typography, Link } from "@mui/material";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 type NewsItem = {
   id: number;
@@ -16,19 +16,20 @@ type NewsItem = {
 export default function News() {
   const [newsList, setNewsList] = useState<NewsItem[]>([]);
 
-  useEffect(() => {
-    const fetchNews = async () => {
-      try {
-        const res = await fetch("/api/news");
-        if (!res.ok) return;
-        const data = await res.json();
-        setNewsList((data.news || []).slice(0, 5));
-      } catch (err) {
-        console.error("お知らせ取得エラー:", err);
-      }
-    };
-    fetchNews();
+  const fetchNews = useCallback(async () => {
+    try {
+      const res = await fetch("/api/news");
+      if (!res.ok) return;
+      const data = await res.json();
+      setNewsList((data.news || []).slice(0, 5));
+    } catch (err) {
+      console.error("お知らせ取得エラー:", err);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchNews();
+  }, [fetchNews]);
 
   if (newsList.length === 0) {
     return (
