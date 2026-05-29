@@ -70,39 +70,25 @@ RECAPTCHA_SECRET_KEY=your-secret-key
 
 ## 院長俳句バックアップ
 
-管理画面の `バックアップDL` ボタンに加えて、cron から同じJSONバックアップを作成できます。
+管理画面の `バックアップDL` ボタンでは、俳句投稿データの軽量JSONをダウンロードできます。画像ファイルを含めた定期バックアップは、cron から `scripts/backup-haiku.sh` を実行します。
 
-1. cron 用トークンを生成し、`next/.env` に設定します。
+`backup-haiku.sh` は Next.js API を経由せず、MySQL の `Blog` テーブル dump と `uploads` ディレクトリをまとめた tar.gz を作成します。
 
-```bash
-openssl rand -hex 32
-```
-
-`next/.env`:
-
-```bash
-HAIKU_BACKUP_TOKEN=generated-token-value
-```
-
-2. 本番コンテナを再起動して環境変数を反映します。
-
-```bash
-docker compose up -d next
-```
-
-3. 手動でバックアップできることを確認します。
+1. 手動でバックアップできることを確認します。
 
 ```bash
 ./scripts/backup-haiku.sh
 ```
 
-4. cron に登録します。例: 毎日 3:30 に実行。
+2. cron に登録します。例: 毎日 3:30 に実行。
 
 ```cron
-30 3 * * * cd /home/seta/mizuki-hp && ./scripts/backup-haiku.sh >> /tmp/mizuki-haiku-backup.log 2>&1
+30 3 * * * cd /home/ubuntu/mizuki-hp && ./scripts/backup-haiku.sh >> /tmp/mizuki-haiku-backup.log 2>&1
 ```
 
-バックアップは既定で `./backups/haiku/` に保存され、30日より古い `mizuki-haiku-backup-*.json` は削除されます。保存先や保持日数を変える場合は `HAIKU_BACKUP_DIR`、`HAIKU_BACKUP_KEEP_DAYS`、`HAIKU_BACKUP_URL` を cron 側で指定してください。
+バックアップは既定で `./backups/haiku/` に保存され、30日より古い `mizuki-haiku-backup-*.tar.gz` は削除されます。保存先や保持日数を変える場合は `HAIKU_BACKUP_DIR`、`HAIKU_BACKUP_KEEP_DAYS` を cron 側で指定してください。
+
+バックアップAPIを cron 以外から直接呼び出したい場合のみ、`next/.env` に `HAIKU_BACKUP_TOKEN` を設定してください。
 
 ## セキュリティチェックリスト
 
