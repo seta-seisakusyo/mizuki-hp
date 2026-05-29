@@ -72,8 +72,8 @@ jobs:
       - name: Deploy to Production Server
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         env:
-          GH_PAT: ${{ secrets.GH_PAT }}
-          GH_USERNAME: ${{ secrets.GH_USERNAME }}
+          GH_PAT: ${{ github.token }}
+          GH_USERNAME: ${{ github.actor }}
           IMAGE_TAG: ${{ github.sha }}
         with:
           host: ${{ secrets.SSH_HOST }}
