@@ -2,9 +2,10 @@ services:
   next:
     build:
       context: ./next
-      dockerfile: Dockerfile
-    image: mizuki-hp-local:latest
+      dockerfile: Dockerfile.dev
+    image: mizuki-hp-dev:latest
     container_name: next_app_dev
+    working_dir: /app
     ports:
       - "3000:3000"
     env_file:
@@ -16,10 +17,8 @@ services:
       - NODE_ENV=development
     volumes:
       - ./next:/app
-      - /app/node_modules
-      - /app/.next
       - ./uploads:/app/public/uploads
-    command: sh -c "npx prisma generate && npx prisma db push && npm run dev"
+    command: sh -c "npx prisma generate && npx prisma db push && npm run dev -- -H 0.0.0.0"
     depends_on:
       mysql:
         condition: service_healthy
@@ -46,7 +45,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
-      start_period: 30s
+      start_period: 180s
 
   nginx:
     image: nginx:latest

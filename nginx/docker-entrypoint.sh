@@ -1,7 +1,9 @@
 #!/bin/sh
 set -e
 
-CERT_PATH="/etc/letsencrypt/live/mizuki-clinic.jp/fullchain.pem"
+# CERT_NAME: 証明書ディレクトリ名（デフォルトはSERVER_NAME）
+CERT_NAME="${CERT_NAME:-${SERVER_NAME}}"
+CERT_PATH="/etc/letsencrypt/live/${CERT_NAME}/fullchain.pem"
 
 # 環境変数を展開
 envsubst '${SERVER_NAME}' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf
@@ -16,8 +18,8 @@ server {
     listen 443 ssl;
     server_name ${SERVER_NAME};
 
-    ssl_certificate /etc/letsencrypt/live/mizuki-clinic.jp/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/mizuki-clinic.jp/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/${CERT_NAME}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${CERT_NAME}/privkey.pem;
 
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384;
@@ -41,7 +43,7 @@ server {
     }
 
     location / {
-        proxy_pass http://next_app:3000;
+        proxy_pass http://next:3000;
         proxy_http_version 1.1;
 
         proxy_set_header Host $host;
@@ -58,13 +60,13 @@ server {
     }
 
     location /_next/static/ {
-        proxy_pass http://next_app:3000;
+        proxy_pass http://next:3000;
         proxy_cache_valid 200 60m;
         add_header Cache-Control "public, max-age=31536000, immutable";
     }
 
     location /static/ {
-        proxy_pass http://next_app:3000;
+        proxy_pass http://next:3000;
         add_header Cache-Control "public, max-age=31536000, immutable";
     }
 }
@@ -74,16 +76,17 @@ server {
     listen 443 ssl;
     server_name www.${SERVER_NAME};
 
-    ssl_certificate /etc/letsencrypt/live/mizuki-clinic.jp/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/mizuki-clinic.jp/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/${CERT_NAME}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${CERT_NAME}/privkey.pem;
 
     ssl_protocols TLSv1.2 TLSv1.3;
 
     return 301 https://${SERVER_NAME}$request_uri;
 }
 EOF
-    # SERVER_NAME を再度展開
+    # SERVER_NAME と CERT_NAME を再度展開
     sed -i "s/\${SERVER_NAME}/${SERVER_NAME}/g" /etc/nginx/conf.d/default.conf
+    sed -i "s/\${CERT_NAME}/${CERT_NAME}/g" /etc/nginx/conf.d/default.conf
 else
     echo "SSL certificate not found. Running HTTP only..."
     # HTTPSリダイレクトを無効化し、HTTPで直接サービス
@@ -114,7 +117,7 @@ server {
     }
 
     location / {
-        proxy_pass http://next_app:3000;
+        proxy_pass http://next:3000;
         proxy_http_version 1.1;
 
         proxy_set_header Host \$host;
@@ -131,13 +134,13 @@ server {
     }
 
     location /_next/static/ {
-        proxy_pass http://next_app:3000;
+        proxy_pass http://next:3000;
         proxy_cache_valid 200 60m;
         add_header Cache-Control "public, max-age=31536000, immutable";
     }
 
     location /static/ {
-        proxy_pass http://next_app:3000;
+        proxy_pass http://next:3000;
         add_header Cache-Control "public, max-age=31536000, immutable";
     }
 }
