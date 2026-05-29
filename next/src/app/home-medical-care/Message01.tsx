@@ -35,15 +35,6 @@ export default function Message02() {
         </ListItem>
       </List>
 
-      <Typography variant="h6" sx={{ fontWeight: 600, color: "#1a1a1a", mb: 1.5 }}>
-        在宅医療DX情報活用加算について
-      </Typography>
-      <Typography variant="body1" sx={{ mb: 1, ml: 2, lineHeight: 1.8 }}>
-        当院では居宅同意取得型のオンライン資格確認システムを活用し、取得した診療情報を計画的な医学管理のもと訪問診療に活用しています。
-      </Typography>
-      <Typography variant="body1" sx={{ mb: 4, ml: 2, lineHeight: 1.8 }}>
-        また、マイナ保険証利用促進等、医療DXを通じて質の高い医療の提供に努めています。
-      </Typography>
 
       <Typography variant="h6" sx={{ fontWeight: 600, color: "#1a1a1a", mb: 1.5 }}>
         訪問診療と往診の違いは？
@@ -65,11 +56,21 @@ export default function Message02() {
       <Typography variant="h6" sx={{ fontWeight: 600, color: "#1a1a1a", mb: 1.5 }}>
         高額療養費制度とは？
       </Typography>
-      <Typography variant="body1" sx={{ ml: 2, lineHeight: 1.8 }}>
+      <Typography variant="body1" sx={{ mb: 4, ml: 2, lineHeight: 1.8 }}>
         健康保険の毎月の自己負担金が一定以上になった場合、払い戻しが受けられます。
         上限額は、年齢や所得、利用している健康保険の種類によっても異なりますので、
         詳しくは、健康保険証に記載された問い合わせ先（保険者）に確認してください。
         この払い戻しについては、自主的に申請することが必要です。
+      </Typography>
+
+      <Typography variant="h6" sx={{ fontWeight: 600, color: "#1a1a1a", mb: 1.5 }}>
+        在宅医療DX情報活用加算について
+      </Typography>
+      <Typography variant="body1" sx={{ mb: 1, ml: 2, lineHeight: 1.8 }}>
+        当院では居宅同意取得型のオンライン資格確認システムを活用し、取得した診療情報を計画的な医学管理のもと訪問診療に活用しています。
+      </Typography>
+      <Typography variant="body1" sx={{ ml: 2, lineHeight: 1.8 }}>
+        また、マイナ保険証利用促進等、医療DXを通じて質の高い医療の提供に努めています。
       </Typography>
     </Box>
   );
