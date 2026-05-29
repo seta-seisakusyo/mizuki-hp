@@ -9,6 +9,17 @@ export default function Message02() {
         <br />
         ご不明な点やご相談がございましたら、スタッフが丁寧にご案内いたします。
       </Typography>
+
+      <Typography variant="h6" sx={{ fontWeight: "bold", color: "#1a1a1a", mb: 1 }}>
+        情報通信機器を用いた診療について
+      </Typography>
+      <Typography variant="body1" sx={{ lineHeight: 1.8, mb: 1 }}>
+        当院では情報通信機器を用いたオンライン診療を実施しております。
+      </Typography>
+      <Typography variant="body1" sx={{ lineHeight: 1.8, mb: 3 }}>
+        なお、初診において向精神薬の処方は行っておりません。
+      </Typography>
+
       <Box sx={{ textAlign: "center", mt: 3 }}>
         <Button
           component={Link}
