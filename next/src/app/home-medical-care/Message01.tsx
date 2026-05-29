@@ -1,4 +1,4 @@
-import { Box, Typography } from "@mui/material";
+import { Box, List, ListItem, Typography } from "@mui/material";
 
 export default function Message02() {
   return (
@@ -12,6 +12,37 @@ export default function Message02() {
         多くの人に受け入れられるようになってきました。在宅医療は、医師をはじめ、歯科医師、
         訪問看護師、薬剤師、栄養士、理学療法士、ケアマネジャー、ホームヘルパーなど多くの方々が
         連携して定期的に患者さんのご自宅などを訪問し、チームとなって患者さんの治療やケアを24時間対応で行っていく医療活動です。
+      </Typography>
+
+      <Typography variant="h6" sx={{ fontWeight: 600, color: "#1a1a1a", mb: 1.5 }}>
+        当院の在宅医療について
+      </Typography>
+      <Typography variant="body1" sx={{ mb: 1, ml: 2, lineHeight: 1.8 }}>
+        当院では在宅療養支援診療所として、訪問診療を実施しております。
+      </Typography>
+      <Typography variant="body1" sx={{ mb: 1, ml: 2, lineHeight: 1.8 }}>
+        病状に応じて、以下を行い、24時間対応体制を整えております。
+      </Typography>
+      <List sx={{ listStyleType: "disc", pl: 6, mb: 4, py: 0 }}>
+        <ListItem sx={{ display: "list-item", py: 0.3, lineHeight: 1.8 }}>
+          緊急往診
+        </ListItem>
+        <ListItem sx={{ display: "list-item", py: 0.3, lineHeight: 1.8 }}>
+          在宅看取り
+        </ListItem>
+        <ListItem sx={{ display: "list-item", py: 0.3, lineHeight: 1.8 }}>
+          訪問看護ステーションとの連携
+        </ListItem>
+      </List>
+
+      <Typography variant="h6" sx={{ fontWeight: 600, color: "#1a1a1a", mb: 1.5 }}>
+        在宅医療DX情報活用加算について
+      </Typography>
+      <Typography variant="body1" sx={{ mb: 1, ml: 2, lineHeight: 1.8 }}>
+        当院では居宅同意取得型のオンライン資格確認システムを活用し、取得した診療情報を計画的な医学管理のもと訪問診療に活用しています。
+      </Typography>
+      <Typography variant="body1" sx={{ mb: 4, ml: 2, lineHeight: 1.8 }}>
+        また、マイナ保険証利用促進等、医療DXを通じて質の高い医療の提供に努めています。
       </Typography>
 
       <Typography variant="h6" sx={{ fontWeight: 600, color: "#1a1a1a", mb: 1.5 }}>

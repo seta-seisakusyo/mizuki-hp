@@ -63,7 +63,7 @@ mysql/data/
 # certbot
 certbot/
 
-docker-compose.override.yml
+docker-compose.local.yml
 
 # backup
 *.sql
