@@ -13,7 +13,7 @@ concurrency:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ryuji0128/mizuki-hp
+  IMAGE_NAME: seta-seisakusyo/mizuki-hp
 
 jobs:
   build-and-push:
