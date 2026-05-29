@@ -99,3 +99,35 @@ docker compose -f docker-compose.dev.yml restart next
 
 開発環境は `mysql_dev_data` ボリューム、本番環境は `./mysql/data` を使用しています。
 混在しないように注意してください。
+
+### 開発環境が重い
+
+まずCPUとメモリ、キャッシュ容量を確認:
+
+```bash
+ps -eo pid,ppid,pcpu,pmem,rss,etime,comm,args --sort=-pcpu | head -20
+free -h
+du -sh next/.next /home/seta/.npm
+```
+
+効果があった対処:
+
+- VS Codeの監視対象から `node_modules`、`.next`、`mysql/data`、`certbot/conf` を除外する
+- `next/.next/cache` を削除する
+- npm/npxキャッシュを掃除する
+- 使っていないVS Code拡張を無効化またはアンインストールする
+- VS Codeで `Developer: Reload Window` を実行する
+
+キャッシュ削除例:
+
+```bash
+# Next.jsキャッシュが通常ユーザーで消せない場合はDocker経由で削除
+docker run --rm -v /home/seta/mizuki-hp/next/.next:/target nginx:1.27-alpine sh -c 'rm -rf /target/cache'
+
+npm cache verify
+npm cache clean --force
+rm -rf /home/seta/.npm/_npx
+```
+
+このリポジトリでは `.vscode/settings.json` にVS Codeの監視除外設定を置いています。
+Codexを使う場合、`openai.chatgpt` 拡張は残し、不要なAI拡張を同時に動かさないようにしてください。

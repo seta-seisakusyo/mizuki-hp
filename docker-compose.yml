@@ -7,7 +7,7 @@ services:
     env_file:
       - ./next/.env
     environment:
-      - DATABASE_URL=mysql://app_user:${MYSQL_PASSWORD:-app_pass}@mysql:3306/app_db
+      - DATABASE_URL=mysql://${MYSQL_USER:-app_user}:${MYSQL_PASSWORD:-app_pass}@mysql:3306/${MYSQL_DATABASE:-app_db}
       - NEXTAUTH_URL=${NEXTAUTH_URL:-https://mizuki-clinic.jp}
       - NEXTAUTH_TRUST_HOST=true
       - NODE_ENV=production
@@ -51,6 +51,7 @@ services:
       - "443:443"
     environment:
       - SERVER_NAME=${SERVER_NAME:-localhost}
+      - CERT_NAME=${CERT_NAME:-${SERVER_NAME:-localhost}}
     volumes:
       - ./nginx/default.conf.template:/etc/nginx/conf.d/default.conf.template:ro
       - ./nginx/docker-entrypoint.sh:/docker-entrypoint.sh:ro
@@ -71,4 +72,4 @@ services:
     volumes:
       - ./certbot/conf:/etc/letsencrypt
       - ./certbot/www:/var/www/certbot
-    command: certonly --webroot --webroot-path=/var/www/certbot --email k_ryuji@setaseisakusyo.com --agree-tos --no-eff-email -d mizuki-clinic.jp -d www.mizuki-clinic.jp --keep-until-expiring
+    command: certonly --webroot --webroot-path=/var/www/certbot --email ${CERTBOT_EMAIL:-admin@example.com} --agree-tos --no-eff-email -d ${CERTBOT_DOMAINS:-localhost} --keep-until-expiring
