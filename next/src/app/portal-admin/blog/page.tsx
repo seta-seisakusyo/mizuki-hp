@@ -9,6 +9,7 @@ import type { BlogItem } from "@/types/models";
 export default function AdminBlogPage() {
   const [blogs, setBlogs] = useState<BlogItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [backupLoading, setBackupLoading] = useState(false);
 
   // 投稿一覧を取得
   const fetchBlogs = async () => {
@@ -47,19 +48,60 @@ export default function AdminBlogPage() {
     }
   };
 
+  const handleBackupDownload = async () => {
+    setBackupLoading(true);
+
+    try {
+      const res = await fetch("/api/blog/backup");
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "バックアップの作成に失敗しました");
+      }
+
+      const blob = await res.blob();
+      const disposition = res.headers.get("Content-Disposition") || "";
+      const fileName =
+        disposition.match(/filename="([^"]+)"/)?.[1] ||
+        `mizuki-haiku-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("バックアップエラー:", err);
+      alert(err instanceof Error ? err.message : "バックアップ中にエラーが発生しました");
+    } finally {
+      setBackupLoading(false);
+    }
+  };
+
   if (loading) return <p className="text-center mt-10">読み込み中...</p>;
 
   return (
     <main className="max-w-3xl mx-auto p-6 space-y-6">
       {/* ✅ 新規作成ボタン */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center">
         <h1 className="text-2xl font-bold flex items-center gap-2">🖊️ 俳句一覧</h1>
-        <Link
-          href="/portal-admin/blog/new"
-          className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition"
-        >
-          ＋ 新規俳句
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={handleBackupDownload}
+            disabled={backupLoading}
+            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:bg-gray-400 transition"
+          >
+            {backupLoading ? "作成中..." : "バックアップDL"}
+          </button>
+          <Link
+            href="/portal-admin/blog/new"
+            className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition"
+          >
+            ＋ 新規俳句
+          </Link>
+        </div>
       </div>
 
       {/* 投稿リスト */}
