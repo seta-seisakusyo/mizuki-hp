@@ -4,6 +4,23 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { BlogItem } from "@/types/models";
 
+type ApiErrorResponse = {
+    error?: string;
+};
+
+type UploadResponse = {
+    url?: string;
+};
+
+async function readApiError(response: Response, fallback: string) {
+    try {
+        const data = (await response.json()) as ApiErrorResponse;
+        return data.error || fallback;
+    } catch {
+        return fallback;
+    }
+}
+
 export default function EditBlogPage() {
     const { id } = useParams();
     const router = useRouter();
@@ -36,19 +53,28 @@ export default function EditBlogPage() {
         const formData = new FormData();
         formData.append("file", file);
 
-        const res = await fetch("/api/admin/upload", {
-            method: "POST",
-            body: formData,
-        });
+        try {
+            const res = await fetch("/api/admin/upload", {
+                method: "POST",
+                body: formData,
+            });
 
-        const data = await res.json();
-        if (res.ok) {
-            setImageUrl(data.url);
-        } else {
-            alert("画像アップロードに失敗しました");
+            if (!res.ok) {
+                alert(await readApiError(res, "画像アップロードに失敗しました"));
+                return;
+            }
+
+            const data = (await res.json()) as UploadResponse;
+            if (data.url) {
+                setImageUrl(data.url);
+            } else {
+                alert("アップロード結果のURLが取得できませんでした");
+            }
+        } catch {
+            alert("画像アップロード中にエラーが発生しました");
+        } finally {
+            setUploading(false);
         }
-
-        setUploading(false);
     };
 
     const handleUpdate = async (e: React.FormEvent) => {
@@ -59,7 +85,7 @@ export default function EditBlogPage() {
             body: JSON.stringify({ title, content, imageUrl, imagePosition }),
         });
         if (res.ok) router.push("/portal-admin/blog");
-        else alert("更新に失敗しました");
+        else alert(await readApiError(res, "更新に失敗しました"));
     };
 
     return (
