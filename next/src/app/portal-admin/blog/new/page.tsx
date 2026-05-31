@@ -1,7 +1,20 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+type ApiErrorResponse = {
+    error?: string;
+};
+
+async function readApiError(response: Response, fallback: string) {
+    try {
+        const data = (await response.json()) as ApiErrorResponse;
+        return data.error || fallback;
+    } catch {
+        return fallback;
+    }
+}
 
 export default function NewBlogPage() {
     const router = useRouter();
@@ -13,13 +26,20 @@ export default function NewBlogPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
+    useEffect(() => {
+        return () => {
+            if (previewUrl) {
+                URL.revokeObjectURL(previewUrl);
+            }
+        };
+    }, [previewUrl]);
+
     // 📸 プレビュー表示
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            setImageFile(file);
-            setPreviewUrl(URL.createObjectURL(file));
-        }
+        const file = e.target.files?.[0] ?? null;
+        setError("");
+        setImageFile(file);
+        setPreviewUrl(file ? URL.createObjectURL(file) : null);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -41,7 +61,7 @@ export default function NewBlogPage() {
                 });
 
                 if (!uploadRes.ok) {
-                    throw new Error("画像のアップロードに失敗しました");
+                    throw new Error(await readApiError(uploadRes, "画像のアップロードに失敗しました"));
                 }
 
                 const uploadData = await uploadRes.json();
@@ -56,8 +76,7 @@ export default function NewBlogPage() {
             });
 
             if (!res.ok) {
-                const err = await res.json();
-                throw new Error(err.error || "投稿に失敗しました");
+                throw new Error(await readApiError(res, "投稿に失敗しました"));
             }
 
             router.push("/portal-admin/blog");
