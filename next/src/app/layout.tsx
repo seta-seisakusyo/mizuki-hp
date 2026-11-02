@@ -7,6 +7,7 @@ import { AppRouterCacheProvider } from "@mui/material-nextjs/v15-appRouter";
 import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider } from "@mui/material/styles";
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import "./globals.css";
 import { SITE_URL } from "@/lib/site";
 
@@ -119,16 +120,23 @@ const structuredData = {
   priceRange: "保険適用",
 };
 
-export default function RootLayout({
+// Every page is rendered per request so it can carry the CSP nonce issued
+// by the middleware; prerendered HTML would hold no valid nonce.
+export const dynamic = "force-dynamic";
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
+
   return (
     <html lang="ja">
       <head>
         <script
           type="application/ld+json"
+          nonce={nonce}
           dangerouslySetInnerHTML={{
             __html: JSON.stringify(structuredData),
           }}

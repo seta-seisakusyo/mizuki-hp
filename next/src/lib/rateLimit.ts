@@ -157,8 +157,9 @@ export function rateLimitResponse(resetTime: number): NextResponse {
   );
 }
 
+/** Two-step logins (password, then TOTP code) use two attempts each. */
 export const LOGIN_IP_LIMIT: RateLimitOptions = {
-  max: 5,
+  max: 10,
   windowMs: 15 * 60 * 1000,
 };
 

@@ -139,6 +139,12 @@ SMTP_PASS=your-smtp-password
 # reCAPTCHA v3
 NEXT_PUBLIC_RECAPTCHA_SITE_KEY=your-site-key
 RECAPTCHA_SECRET_KEY=your-secret-key
+
+# 管理画面のセキュリティ（任意）
+# 管理画面と管理APIにアクセスできるIP（カンマ区切り）。空なら制限しない
+ADMIN_ALLOWED_IPS=
+# ログインのロックの通知先。未設定なら CONTACT_TO_EMAIL に送る
+SECURITY_ALERT_EMAIL=
 ```
 
 本番環境では `docker-compose.yml` の `environment` で以下が上書きされる：
@@ -416,6 +422,10 @@ mizuki-hp/
 | emailVerified | DateTime? | メール認証日 |
 | role | UserRole | ロール（ADMIN / EDITOR / VIEWER） |
 | image | String? | プロフィール画像 |
+| totpSecret | String? | 二要素認証の鍵（AUTH_SECRET から導出した鍵で AES-256-GCM 暗号化） |
+| totpPendingSecret | String? | 設定中で未確認の鍵 |
+| totpEnabledAt | DateTime? | 二要素認証の設定日時 |
+| totpLastStep | Int? | 最後に使った確認コードの時刻区間（再利用の防止） |
 | createdAt | DateTime | 作成日 |
 | updatedAt | DateTime | 更新日 |
 
@@ -541,7 +551,12 @@ docker compose exec -e MYSQL_PWD="$MYSQL_PASSWORD" mysql mysql -u "$MYSQL_USER" 
 | Secure Cookies | HTTPS環境で自動的にセキュアクッキー有効化（`NEXTAUTH_URL`の`https://`を検出） |
 | ユーザーロール | ADMIN / EDITOR / VIEWER |
 | ミドルウェア | `/portal-admin/*` ルートの認証保護（未認証時は `/portal-login` にリダイレクト） |
-| レート制限 | Redis共有カウンタ、信頼済み`X-Real-IP`のみ使用。Redis障害時は上限付きローカルMapへfail-safe |
+| 二要素認証 | ADMIN は TOTP（認証アプリ）の設定が必須。未設定の間は管理画面と管理APIを使えない。EDITOR は任意 |
+| CSP | `src/middleware.ts` がリクエストごとに nonce を発行して強制（`'strict-dynamic'`、インラインスクリプトは不可） |
+| Origin検証 | `/api/*` への POST・PUT・DELETE は `NEXTAUTH_URL` と同じ Origin（なければ Referer）からのみ受け付ける |
+| 管理画面のIP制限 | `ADMIN_ALLOWED_IPS` を設定すると、許可していない IP からの管理画面と管理APIへのアクセスに 404 を返す |
+| ログイン通知 | ログインのたびに本人へ通知。失敗が続いてロックしたときは本人と `SECURITY_ALERT_EMAIL` へ通知 |
+| レート制限 | Redis共有カウンタ、信頼済み`X-Real-IP`のみ使用。Redis障害時は上限付きローカルMapへfail-safe。ログインは IP 単位とアカウント単位（各15分に10回） |
 | API保護 | ADMIN権限チェック（Blog/News CRUD、問い合わせ削除、アップロード） |
 | reCAPTCHA v3 | フォームスパム対策（スコア閾値: 0.5）、開発環境では自動バイパス |
 | XSSサニタイズ | 二重防御: `xss`パッケージ + HTML escapeによる入力サニタイズ |
@@ -551,6 +566,19 @@ docker compose exec -e MYSQL_PWD="$MYSQL_PASSWORD" mysql mysql -u "$MYSQL_USER" 
 | アップロード | 認証+ADMIN権限 / JPEG・PNG・WebPの実データ検査 / Sharp再エンコード / 10MB制限 / UUIDファイル名 |
 | SSL | Let's Encrypt + HTTP→HTTPS自動リダイレクト + www→non-wwwリダイレクト |
 | DB | 強固なパスワード設定 / AES-256-CBC暗号化バックアップ（30日保持） |
+
+### 二要素認証の運用
+
+- 管理者（ADMIN）は、初回ログインの後に `/portal-admin/security` で認証アプリを設定するまで管理画面を使えません。
+- 鍵の暗号化には `AUTH_SECRET` から導出した鍵を使います。**`AUTH_SECRET` を変更すると、設定済みの二要素認証はすべて使えなくなります。** 変更した場合は、下の手順で全員の設定を解除してから再設定してください。
+- スマートフォンの紛失などで確認コードを入力できなくなった場合は、サーバー上で次を実行して解除し、本人に再設定してもらいます。
+
+```bash
+docker compose exec -T mysql sh -c 'mysql -u root -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE"' <<'SQL'
+UPDATE User SET totpSecret = NULL, totpPendingSecret = NULL, totpEnabledAt = NULL, totpLastStep = NULL
+WHERE email = '対象のメールアドレス';
+SQL
+```
 
 ### Nginx セキュリティヘッダー
 
@@ -564,7 +592,8 @@ docker compose exec -e MYSQL_PWD="$MYSQL_PASSWORD" mysql mysql -u "$MYSQL_USER" 
 | `Referrer-Policy` | strict-origin-when-cross-origin | リファラー情報制限 |
 | `Strict-Transport-Security` | max-age=31536000; includeSubDomains | HTTPS強制（HSTS） |
 | `Permissions-Policy` | camera=(), microphone=(), geolocation=() | デバイスAPI制限 |
-| `Content-Security-Policy` | script/style/img/frame/connect-src制限 | コンテンツインジェクション防止 |
+
+`Content-Security-Policy` は nonce を使うため、nginx ではなく `next/src/middleware.ts` で設定しています。
 
 ### Nginx キャッシュ設定
 
