@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import xss from "xss";
 import { INPUT_LIMITS } from "@/lib/validation";
+import { isMfaRequired } from "@/lib/mfa";
 
 // 許可されたニュースカラー
 const ALLOWED_NEWS_COLORS = ["black", "red", "blue", "green", "orange"] as const;
@@ -32,6 +33,8 @@ export function parseId(id: string): number | null {
   return parsed;
 }
 
+export const MFA_SETUP_REQUIRED = "二要素認証の設定が必要です";
+
 // 管理画面へのアクセスを許可するロール（middlewareと統一）
 const ADMIN_ROLES = ["ADMIN", "EDITOR"] as const;
 
@@ -55,7 +58,7 @@ export async function checkAdminAuth(): Promise<
 
   const user = await prisma.user.findUnique({
     where: { email: session.user.email },
-    select: { role: true },
+    select: { role: true, totpEnabledAt: true },
   });
 
   if (!user || !ADMIN_ROLES.includes(user.role as typeof ADMIN_ROLES[number])) {
@@ -63,6 +66,10 @@ export async function checkAdminAuth(): Promise<
       isAdmin: false,
       response: apiError("権限がありません", 403),
     };
+  }
+
+  if (isMfaRequired(user.role) && !user.totpEnabledAt) {
+    return { isAdmin: false, response: apiError(MFA_SETUP_REQUIRED, 403) };
   }
 
   return { isAdmin: true, email: session.user.email, role: user.role };
@@ -80,10 +87,13 @@ export async function checkAdminOnlyAuth(): Promise<
 
   const user = await prisma.user.findUnique({
     where: { email: session.user.email },
-    select: { role: true },
+    select: { role: true, totpEnabledAt: true },
   });
   if (user?.role !== "ADMIN") {
     return { isAdmin: false, response: apiError("Forbidden", 403) };
+  }
+  if (!user.totpEnabledAt) {
+    return { isAdmin: false, response: apiError(MFA_SETUP_REQUIRED, 403) };
   }
 
   return { isAdmin: true, email: session.user.email, role: "ADMIN" };

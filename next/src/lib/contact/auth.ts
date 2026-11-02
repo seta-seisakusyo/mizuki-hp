@@ -7,8 +7,9 @@ export async function isAdminUser(): Promise<boolean> {
 
   const user = await prisma.user.findUnique({
     where: { email: session.user.email },
-    select: { role: true },
+    select: { role: true, totpEnabledAt: true },
   });
 
-  return Boolean(user && user.role === "ADMIN");
+  // ADMIN must have two-factor authentication, matching checkAdminOnlyAuth.
+  return Boolean(user && user.role === "ADMIN" && user.totpEnabledAt);
 }

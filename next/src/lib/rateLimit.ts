@@ -157,6 +157,25 @@ export function rateLimitResponse(resetTime: number): NextResponse {
   );
 }
 
+/** Two-step logins (password, then TOTP code) use two attempts each. */
+export const LOGIN_IP_LIMIT: RateLimitOptions = {
+  max: 10,
+  windowMs: 15 * 60 * 1000,
+};
+
+/**
+ * Per-account limit so attempts spread across many IPs still hit a ceiling.
+ * Applied to every address, registered or not, to avoid revealing accounts.
+ */
+export const LOGIN_ACCOUNT_LIMIT: RateLimitOptions = {
+  max: 10,
+  windowMs: 15 * 60 * 1000,
+};
+
+export function loginAccountRateLimitKey(email: string): string {
+  return `login:account:${email.trim().toLowerCase()}`;
+}
+
 export const PUBLIC_API_LIMIT: RateLimitOptions = {
   max: 60,
   windowMs: 60 * 1000,
