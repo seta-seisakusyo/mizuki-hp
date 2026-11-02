@@ -11,3 +11,5 @@ yarn-error.log
 coverage
 src/**/*.test.*
 src/**/*.spec.*
+*.key
+*.crt
