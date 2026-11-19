@@ -152,6 +152,25 @@ jobs:
             export IMAGE_TAG="${IMAGE_TAG}"
             docker compose -f docker-compose.yml pull next
 
+            # nginx もサービス停止・migration より前に取得する。
+            # 取得できなければ set -e によりここで中断し、稼働中のサービスには触れない。
+            # （nginx 1.31.9: CVE-2026-123007 / CVE-2026-123633 などの修正版）
+            NGINX_REF=$(docker compose -f docker-compose.yml config --images | grep -E '^(docker\.io/library/)?nginx:' || true)
+            if [ -z "$NGINX_REF" ] || [ "$(printf '%s\n' "$NGINX_REF" | wc -l)" -ne 1 ]; then
+              echo "ERROR: Compose から nginx のイメージ参照を一意に取得できません: '${NGINX_REF}'"
+              exit 1
+            fi
+            NGINX_EXPECTED_VERSION=$(printf '%s\n' "$NGINX_REF" | sed -nE 's#^.*nginx:([0-9]+\.[0-9]+\.[0-9]+).*#\1#p')
+            if [ -z "$NGINX_EXPECTED_VERSION" ]; then
+              echo "ERROR: nginx のイメージ参照に固定バージョンがありません: ${NGINX_REF}"
+              exit 1
+            fi
+            docker compose -f docker-compose.yml pull nginx
+            # .Id（image ID）はコンテナの .Image と同じ値。RepoDigest は別物なのでログ用。
+            NGINX_EXPECTED_ID=$(docker image inspect -f '{{.Id}}' "$NGINX_REF")
+            NGINX_DIGEST=$(docker image inspect -f '{{if .RepoDigests}}{{index .RepoDigests 0}}{{end}}' "$NGINX_REF")
+            echo "nginx (pulled): ref=${NGINX_REF} expected=${NGINX_EXPECTED_VERSION} id=${NGINX_EXPECTED_ID} digest=${NGINX_DIGEST:-<none>}"
+
             echo "Preparing persistent upload directory for the non-root app user..."
             mkdir -p uploads
             docker compose -f docker-compose.yml run --rm --no-deps --user root next \
@@ -165,7 +184,7 @@ jobs:
             MYSQL_READY=false
             while [ $i -le 30 ]; do
               # Use container's MYSQL_ROOT_PASSWORD environment variable
-              if docker compose -f docker-compose.yml exec -T mysql sh -c 'mysqladmin ping -h localhost -u root -p${MYSQL_ROOT_PASSWORD} --silent' 2>/dev/null; then
+              if docker compose -f docker-compose.yml exec -T mysql sh -c 'mysqladmin ping -h localhost -u root -p${MYSQL_ROOT_PASSWORD} --silent' </dev/null 2>/dev/null; then
                 echo "MySQL is ready!"
                 MYSQL_READY=true
                 break
@@ -240,6 +259,30 @@ jobs:
               fi
               exit 1
             fi
+
+            # 稼働中の nginx が pull したイメージ・固定版で動いていることを照合する。
+            # restart では新イメージにならないため、旧版が残っていれば失敗にする。
+            echo "Verifying running nginx..."
+            NGINX_CID=$(docker compose -f docker-compose.yml ps -q nginx)
+            if [ -z "$NGINX_CID" ]; then
+              echo "ERROR: nginx コンテナが起動していません"
+              exit 1
+            fi
+            NGINX_RUNNING_ID=$(docker inspect -f '{{.Image}}' "$NGINX_CID")
+            if [ "$NGINX_RUNNING_ID" != "$NGINX_EXPECTED_ID" ]; then
+              echo "ERROR: nginx は image ${NGINX_RUNNING_ID} で起動しています（期待 ${NGINX_EXPECTED_ID} = ${NGINX_REF}）"
+              exit 1
+            fi
+            docker compose -f docker-compose.yml exec -T nginx nginx -t </dev/null
+            # nginx -v は標準エラーへ出力する
+            NGINX_V_OUT=$(docker compose -f docker-compose.yml exec -T nginx nginx -v </dev/null 2>&1)
+            NGINX_RUNNING_VERSION=$(printf '%s\n' "$NGINX_V_OUT" | sed -nE 's#^nginx version: nginx/([0-9]+\.[0-9]+\.[0-9]+).*#\1#p')
+            if [ "$NGINX_RUNNING_VERSION" != "$NGINX_EXPECTED_VERSION" ]; then
+              echo "ERROR: nginx の実バージョン '${NGINX_RUNNING_VERSION}' が期待 '${NGINX_EXPECTED_VERSION}' と一致しません"
+              exit 1
+            fi
+            NGINX_RUNNING_DIGEST=$(docker image inspect -f '{{if .RepoDigests}}{{index .RepoDigests 0}}{{end}}' "$NGINX_RUNNING_ID")
+            echo "nginx (running): version=${NGINX_RUNNING_VERSION} id=${NGINX_RUNNING_ID} digest=${NGINX_RUNNING_DIGEST:-<none>}"
 
             echo "Checking HTTPS edge health..."
             curl --fail --silent --show-error --max-time 15 "https://${SERVER_NAME}/api/health" > /dev/null
