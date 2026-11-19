@@ -15,6 +15,7 @@ import {
 import {
   Email as EmailIcon,
   Lock as LockIcon,
+  PhonelinkLock as PhonelinkLockIcon,
   Visibility,
   VisibilityOff,
 } from "@mui/icons-material";
@@ -23,11 +24,13 @@ import { login } from "@/actions/login";
 type LoginFormValues = {
   email: string;
   password: string;
+  code?: string;
 };
 
 export default function CredentialsLoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [otpRequired, setOtpRequired] = useState(false);
 
   const {
     control,
@@ -45,6 +48,9 @@ export default function CredentialsLoginForm() {
       const result = await login(data);
       if (result.success) {
         window.location.href = "/portal-admin";
+      } else if (result.otpRequired) {
+        setOtpRequired(true);
+        setErrorMessage(result.messages?.[0] ?? null);
       } else {
         setErrorMessage(result.messages?.[0] || "ログインに失敗しました。");
       }
@@ -124,6 +130,32 @@ export default function CredentialsLoginForm() {
           />
         )}
       />
+
+      {otpRequired && (
+        <Controller
+          name="code"
+          control={control}
+          defaultValue=""
+          render={({ field }) => (
+            <TextField
+              {...field}
+              label="確認コード"
+              placeholder="認証アプリの6桁の数字"
+              autoFocus
+              fullWidth
+              helperText="認証アプリに表示されている6桁の確認コードを入力してください。"
+              inputProps={{ inputMode: "numeric", autoComplete: "one-time-code", maxLength: 8 }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <PhonelinkLockIcon color="action" />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          )}
+        />
+      )}
 
       <Button
         type="submit"

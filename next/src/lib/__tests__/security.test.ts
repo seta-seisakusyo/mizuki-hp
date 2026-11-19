@@ -6,6 +6,8 @@ import {
 import {
   checkRateLimitKey,
   getTrustedClientIp,
+  LOGIN_ACCOUNT_LIMIT,
+  loginAccountRateLimitKey,
 } from "@/lib/rateLimit";
 import { INPUT_LIMITS } from "@/lib/validation";
 import { describe, expect, it } from "vitest";
@@ -79,5 +81,20 @@ describe("rate limiting identity and bounds", () => {
     expect((await checkRateLimitKey(key, { max: 2, windowMs: 60_000 })).limited).toBe(false);
     expect((await checkRateLimitKey(key, { max: 2, windowMs: 60_000 })).limited).toBe(false);
     expect((await checkRateLimitKey(key, { max: 2, windowMs: 60_000 })).limited).toBe(true);
+  });
+
+  it("limits login attempts per account regardless of address casing", async () => {
+    const email = `admin-${Date.now()}-${Math.random()}@example.com`;
+    expect(loginAccountRateLimitKey(` ${email.toUpperCase()} `)).toBe(
+      loginAccountRateLimitKey(email)
+    );
+
+    const variants = [email, email.toUpperCase(), ` ${email} `];
+    for (let i = 0; i < LOGIN_ACCOUNT_LIMIT.max!; i++) {
+      const key = loginAccountRateLimitKey(variants[i % variants.length]);
+      expect((await checkRateLimitKey(key, LOGIN_ACCOUNT_LIMIT)).limited).toBe(false);
+    }
+    const key = loginAccountRateLimitKey(email);
+    expect((await checkRateLimitKey(key, LOGIN_ACCOUNT_LIMIT)).limited).toBe(true);
   });
 });

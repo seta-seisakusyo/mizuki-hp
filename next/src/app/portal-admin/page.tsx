@@ -21,6 +21,12 @@ const menuItems = [
     path: "/portal-admin/news",
     icon: "📢",
   },
+  {
+    label: "二要素認証",
+    description: "ログイン時の確認コードの設定",
+    path: "/portal-admin/security",
+    icon: "🔐",
+  },
 ];
 
 export default function AdminDashboard() {

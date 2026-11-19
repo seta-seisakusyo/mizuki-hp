@@ -43,19 +43,24 @@ model Inquiry {
 }
 
 model User {
-  id            String          @id @default(cuid())
-  name          String?
-  username      String?         @unique
-  password      String?
-  email         String?         @unique
-  emailVerified DateTime?
-  role          UserRole        @default(VIEWER)
-  image         String?
-  accounts      Account[]
-  sessions      Session[]
+  id                String    @id @default(cuid())
+  name              String?
+  username          String?   @unique
+  password          String?
+  email             String?   @unique
+  emailVerified     DateTime?
+  role              UserRole  @default(VIEWER)
+  image             String?
+  // TOTP secrets are AES-256-GCM sealed with a key derived from AUTH_SECRET.
+  totpSecret        String?   @db.VarChar(255)
+  totpPendingSecret String?   @db.VarChar(255)
+  totpEnabledAt     DateTime?
+  totpLastStep      Int?
+  accounts          Account[]
+  sessions          Session[]
   // Optional for WebAuthn support
   // Authenticator Authenticator[]
- 
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -129,4 +134,3 @@ model VerificationToken {
 
 //   @@id([userId, credentialID])
 // }
-

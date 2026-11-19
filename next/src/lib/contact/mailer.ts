@@ -23,7 +23,7 @@ function escapeHtml(value: string): string {
  * ヘッダーインジェクション防止のため、改行を除去（または空白に置換）
  * 本文中の改行は許可するが、ヘッダー区切りになりうる連続改行は制限
  */
-function sanitizeTextForEmail(value: string): string {
+export function sanitizeTextForEmail(value: string): string {
   // CRLFインジェクション防止: \r を削除
   // 連続する改行を2つまでに制限（ヘッダー終了を偽装させない）
   return value
@@ -35,11 +35,11 @@ function sanitizeTextForEmail(value: string): string {
  * メールヘッダー用のサニタイズ（Subject等）
  * 改行文字を完全に除去
  */
-function sanitizeHeaderValue(value: string): string {
+export function sanitizeHeaderValue(value: string): string {
   return value.replace(/[\r\n]/g, " ").trim();
 }
 
-function getSmtpConfig(): SmtpConfig {
+export function getSmtpConfig(): SmtpConfig {
   const host = process.env.SMTP_HOST;
   const port = Number(process.env.SMTP_PORT) || 465;
   const user = process.env.SMTP_USER;
@@ -53,9 +53,8 @@ function getSmtpConfig(): SmtpConfig {
   return { host, port, user, pass, toAddress };
 }
 
-export async function sendContactEmails(payload: ContactPayload): Promise<void> {
-  const smtp = getSmtpConfig();
-  const transporter = nodemailer.createTransport({
+export function createMailTransport(smtp: SmtpConfig = getSmtpConfig()) {
+  return nodemailer.createTransport({
     host: smtp.host,
     port: smtp.port,
     secure: smtp.port === 465,
@@ -68,6 +67,11 @@ export async function sendContactEmails(payload: ContactPayload): Promise<void> 
     connectionTimeout: 10_000,
     socketTimeout: 30_000,
   });
+}
+
+export async function sendContactEmails(payload: ContactPayload): Promise<void> {
+  const smtp = getSmtpConfig();
+  const transporter = createMailTransport(smtp);
 
   // HTML用サニタイズ
   const safeName = escapeHtml(payload.name);
