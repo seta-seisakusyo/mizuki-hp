@@ -10,6 +10,7 @@ import LocalParkingIcon from "@mui/icons-material/LocalParking";
 import PhoneIcon from "@mui/icons-material/Phone";
 import FaxIcon from "@mui/icons-material/Fax";
 import EmailIcon from "@mui/icons-material/Email";
+import { CLINIC, CLINIC_ADDRESS } from "@/lib/clinic";
 
 function InfoRow({
   icon,
@@ -74,13 +75,13 @@ export default function Message01() {
         }}
       >
         <iframe
-          title="みずきクリニック所在地"
+          title={`${CLINIC.name}所在地`}
           width="100%"
           height="350"
           style={{ border: 0, display: "block" }}
           loading="lazy"
           allowFullScreen
-          src="https://www.google.com/maps?q=石川県金沢市みずき1丁目3-5&output=embed"
+          src={`https://www.google.com/maps?q=${encodeURIComponent(CLINIC_ADDRESS)}&output=embed`}
         ></iframe>
       </Box>
 
@@ -98,29 +99,29 @@ export default function Message01() {
             icon={<LocationOnIcon sx={{ color: "#2a7d8f", fontSize: 22 }} />}
             label="所在地"
           >
-            〒921-0201<br />
-            石川県金沢市みずき1丁目3-5
+            〒{CLINIC.postalCode}<br />
+            {CLINIC_ADDRESS}
           </InfoRow>
 
           <InfoRow
             icon={<PhoneIcon sx={{ color: "#2a7d8f", fontSize: 22 }} />}
             label="電話番号"
           >
-            076-255-0337
+            {CLINIC.tel}
           </InfoRow>
 
           <InfoRow
             icon={<FaxIcon sx={{ color: "#2a7d8f", fontSize: 22 }} />}
             label="FAX"
           >
-            076-255-1211
+            {CLINIC.fax}
           </InfoRow>
 
           <InfoRow
             icon={<EmailIcon sx={{ color: "#2a7d8f", fontSize: 22 }} />}
             label="メール"
           >
-            info@mizuki-clinic.jp
+            {CLINIC.email}
           </InfoRow>
 
           <InfoRow

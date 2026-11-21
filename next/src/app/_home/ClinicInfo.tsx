@@ -5,6 +5,7 @@ import LocalHospitalIcon from "@mui/icons-material/LocalHospital";
 import LocalPhoneIcon from "@mui/icons-material/LocalPhone";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import { Box, Grid, Stack, Typography } from "@mui/material";
+import { CLINIC, CLINIC_ADDRESS } from "@/lib/clinic";
 
 export default function Message02() {
   return (
@@ -40,7 +41,7 @@ export default function Message02() {
               color="text.secondary"
               sx={{ fontSize: { xs: "1.2rem", md: "1.4rem" } }}
             >
-              みずきクリニック
+              {CLINIC.name}
             </Typography>
           </Stack>
         </Grid>
@@ -75,9 +76,9 @@ export default function Message02() {
                 lineHeight: 1.6,
               }}
             >
-              〒921-0201
+              〒{CLINIC.postalCode}
               <br />
-              石川県金沢市みずき1丁目3-5
+              {CLINIC_ADDRESS}
             </Typography>
           </Stack>
         </Grid>
@@ -93,9 +94,9 @@ export default function Message02() {
               color="text.secondary"
               sx={{ fontSize: { xs: "1rem", md: "1.2rem" }, lineHeight: 1.8 }}
             >
-              TEL：076-255-0337<br />
-              FAX：076-255-1211<br />
-              メール：info@mizuki-clinic.jp
+              TEL：{CLINIC.tel}<br />
+              FAX：{CLINIC.fax}<br />
+              メール：{CLINIC.email}
             </Typography>
           </Stack>
         </Grid>
