@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import xss from "xss";
 import { INPUT_LIMITS } from "@/lib/validation";
-import { isMfaRequired } from "@/lib/mfa";
+import { isMfaRequired } from "@/lib/permissions";
 
 // 許可されたニュースカラー
 const ALLOWED_NEWS_COLORS = ["black", "red", "blue", "green", "orange"] as const;

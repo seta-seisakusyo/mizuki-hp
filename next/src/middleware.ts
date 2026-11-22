@@ -11,9 +11,9 @@ import {
   isAllowedApiWrite,
   parseAllowedIps,
 } from "@/lib/edgeGuard";
+import { can } from "@/lib/permissions";
 import { getTrustedClientIp } from "@/lib/rateLimit";
 
-const ADMIN_ROLES = ["ADMIN", "EDITOR"] as const;
 const isProduction = process.env.NODE_ENV === "production";
 const allowedAdminIps = parseAllowedIps(process.env.ADMIN_ALLOWED_IPS);
 const siteOrigin = expectedOrigin(process.env.NEXTAUTH_URL ?? process.env.AUTH_URL);
@@ -53,11 +53,7 @@ export default auth((req) => {
     return NextResponse.redirect(new URL("/portal-login", nextUrl));
   }
 
-  if (
-    isProtectedRoute &&
-    isLoggedIn &&
-    !ADMIN_ROLES.includes(userRole as (typeof ADMIN_ROLES)[number])
-  ) {
+  if (isProtectedRoute && isLoggedIn && !can(userRole, "admin:access")) {
     return NextResponse.redirect(new URL("/?error=unauthorized", nextUrl));
   }
 

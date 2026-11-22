@@ -7,12 +7,7 @@ export const MFA_ISSUER = "mizuki-clinic.jp";
 const CIPHER = "aes-256-gcm";
 const CIPHER_VERSION = "v1";
 
-/** Roles that must have two-factor authentication before using the admin. */
-export const MFA_REQUIRED_ROLES = ["ADMIN"] as const;
-
-export function isMfaRequired(role: string | null | undefined): boolean {
-  return MFA_REQUIRED_ROLES.includes(role as (typeof MFA_REQUIRED_ROLES)[number]);
-}
+// 二要素認証が必須のロールの判定は @/lib/permissions の isMfaRequired を使う。
 
 /** Derive the TOTP encryption key from AUTH_SECRET so no new secret is needed. */
 export function deriveMfaKey(authSecret: string | undefined = process.env.AUTH_SECRET): Buffer {

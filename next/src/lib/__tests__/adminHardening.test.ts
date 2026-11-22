@@ -7,7 +7,8 @@ import {
   isAllowedApiWrite,
   parseAllowedIps,
 } from "@/lib/edgeGuard";
-import { decryptMfaSecret, deriveMfaKey, encryptMfaSecret, isMfaRequired, totpEnrollment } from "@/lib/mfa";
+import { decryptMfaSecret, deriveMfaKey, encryptMfaSecret, totpEnrollment } from "@/lib/mfa";
+import { isMfaRequired } from "@/lib/permissions";
 import { buildSecurityMail } from "@/lib/securityNotify";
 import { afterEach, describe, expect, it } from "vitest";
 
