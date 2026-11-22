@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
-import { apiError, checkAdminAuth, parseId, sanitizeString, sanitizeContents, sanitizeUrl } from "@/lib/apiUtils";
+import { apiError, parseId, sanitizeString, sanitizeContents, sanitizeUrl } from "@/lib/apiUtils";
+import { requirePermission } from "@/lib/staff";
 import { isRecordNotFound, parseJsonBody } from "@/lib/apiRequest";
 import logger from "@/lib/logger";
 import { NextResponse } from "next/server";
@@ -42,8 +43,8 @@ export async function PUT(
     return apiError("無効なIDです", 400);
   }
 
-  const authResult = await checkAdminAuth();
-  if (!authResult.isAdmin) {
+  const authResult = await requirePermission("news:write");
+  if (!authResult.ok) {
     return authResult.response;
   }
 
@@ -81,8 +82,8 @@ export async function DELETE(
     return apiError("無効なIDです", 400);
   }
 
-  const authResult = await checkAdminAuth();
-  if (!authResult.isAdmin) {
+  const authResult = await requirePermission("news:write");
+  if (!authResult.ok) {
     return authResult.response;
   }
 

@@ -1,17 +1,11 @@
-import { auth } from "@/auth";
-import { prisma } from "@/lib/db";
-import { isMfaRequired } from "@/lib/mfa";
+import { isMfaRequired } from "@/lib/permissions";
+import { getSessionUser } from "@/lib/staff";
 import { redirect } from "next/navigation";
 import TotpSettings from "./TotpSettings";
 
 export default async function SecurityPage() {
-  const session = await auth();
-  if (!session?.user?.email) redirect("/portal-login");
-
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
-    select: { role: true, totpEnabledAt: true },
-  });
+  // レイアウトと同じ取得結果を使う（cache により DB の問い合わせは 1 回）
+  const user = await getSessionUser();
   if (!user) redirect("/portal-login");
 
   const required = isMfaRequired(user.role);
@@ -20,6 +14,12 @@ export default async function SecurityPage() {
   return (
     <main className="max-w-xl mx-auto p-6">
       <h1 className="text-2xl font-bold mb-6">二要素認証</h1>
+
+      {!required && (
+        <p className="mb-6 text-sm text-gray-600">
+          任意の設定です。設定すると、ログインのたびにパスワードに加えて認証アプリの確認コードが必要になります。
+        </p>
+      )}
 
       {required && !enabled && (
         <p className="mb-6 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm">

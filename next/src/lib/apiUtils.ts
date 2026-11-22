@@ -1,8 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
-import { prisma } from "@/lib/db";
 import xss from "xss";
-import { isMfaRequired } from "@/lib/mfa";
 
 // 入力の検証（必須・文字数・日付・色など）は @/lib/apiSchemas に集約している。
 
@@ -30,71 +27,7 @@ export function parseId(id: string): number | null {
   return parsed;
 }
 
-export const MFA_SETUP_REQUIRED = "二要素認証の設定が必要です";
-
-// 管理画面へのアクセスを許可するロール（middlewareと統一）
-const ADMIN_ROLES = ["ADMIN", "EDITOR"] as const;
-
-/**
- * 管理者権限をチェック
- * ADMIN または EDITOR ロールを許可（middlewareと統一）
- * @returns ユーザーが管理者の場合はtrue、そうでなければエラーレスポンス
- */
-export async function checkAdminAuth(): Promise<
-  | { isAdmin: true; email: string; role: string }
-  | { isAdmin: false; response: NextResponse }
-> {
-  const session = await auth();
-
-  if (!session?.user?.email) {
-    return {
-      isAdmin: false,
-      response: apiError("未ログインです", 401),
-    };
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
-    select: { role: true, totpEnabledAt: true },
-  });
-
-  if (!user || !ADMIN_ROLES.includes(user.role as typeof ADMIN_ROLES[number])) {
-    return {
-      isAdmin: false,
-      response: apiError("権限がありません", 403),
-    };
-  }
-
-  if (isMfaRequired(user.role) && !user.totpEnabledAt) {
-    return { isAdmin: false, response: apiError(MFA_SETUP_REQUIRED, 403) };
-  }
-
-  return { isAdmin: true, email: session.user.email, role: user.role };
-}
-
-/** Require the ADMIN role and re-check it against the database. */
-export async function checkAdminOnlyAuth(): Promise<
-  | { isAdmin: true; email: string; role: "ADMIN" }
-  | { isAdmin: false; response: NextResponse }
-> {
-  const session = await auth();
-  if (!session?.user?.email) {
-    return { isAdmin: false, response: apiError("Unauthorized", 401) };
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
-    select: { role: true, totpEnabledAt: true },
-  });
-  if (user?.role !== "ADMIN") {
-    return { isAdmin: false, response: apiError("Forbidden", 403) };
-  }
-  if (!user.totpEnabledAt) {
-    return { isAdmin: false, response: apiError(MFA_SETUP_REQUIRED, 403) };
-  }
-
-  return { isAdmin: true, email: session.user.email, role: "ADMIN" };
-}
+// 権限チェックは @/lib/staff の requirePermission() を使う（#193）。
 
 /**
  * 値を再帰的にサニタイズ

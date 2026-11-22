@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
-import { apiError, checkAdminAuth, sanitizeString, sanitizeImageUrl } from "@/lib/apiUtils";
+import { apiError, sanitizeString, sanitizeImageUrl } from "@/lib/apiUtils";
+import { requirePermission } from "@/lib/staff";
 import { parseJsonBody } from "@/lib/apiRequest";
 import { checkRateLimit, rateLimitResponse, PUBLIC_API_LIMIT } from "@/lib/rateLimit";
 import logger from "@/lib/logger";
@@ -31,8 +32,8 @@ export async function GET(req: NextRequest) {
 // 投稿作成 (POST)
 // =====================
 export async function POST(request: Request) {
-  const authResult = await checkAdminAuth();
-  if (!authResult.isAdmin) {
+  const authResult = await requirePermission("blog:write");
+  if (!authResult.ok) {
     return authResult.response;
   }
 

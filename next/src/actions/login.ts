@@ -1,6 +1,6 @@
 "use server";
 
-import { OTP_INVALID, OTP_REQUIRED, signIn } from "@/auth";
+import { AUTH_ERROR_MESSAGE, OTP_INVALID, OTP_REQUIRED, signIn } from "@/auth";
 import { prisma } from "@/lib/db";
 import {
   checkRateLimitKey,
@@ -12,11 +12,10 @@ import {
 import { sendSecurityNotification } from "@/lib/securityNotify";
 import { LoginSchema } from "@/lib/validation";
 import { AuthError, CredentialsSignin } from "next-auth";
-import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { headers } from "next/headers";
+import { unstable_rethrow } from "next/navigation";
 import * as z from "zod";
 
-const AUTH_ERROR_MESSAGE = "メールアドレスまたはパスワードが正しくありません。";
 const RATE_LIMIT_MESSAGE = "ログイン試行回数の上限に達しました。15分後に再度お試しください。";
 const OTP_INVALID_MESSAGE = "確認コードが正しくありません。";
 
@@ -62,7 +61,8 @@ export const login = async (data: z.infer<typeof LoginSchema>): Promise<LoginRes
   try {
     await signIn("credentials", { email, password, code: code ?? "", redirect: false });
   } catch (error) {
-    if (isRedirectError(error)) throw error;
+    // リダイレクトなど Next.js の制御用の例外はそのまま投げ直す（内部パスの import を使わない）
+    unstable_rethrow(error);
     if (hasCode(error, OTP_REQUIRED)) {
       return { success: false, otpRequired: true };
     }

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
-import { apiError, checkAdminAuth, parseId, sanitizeString, sanitizeImageUrl } from "@/lib/apiUtils";
+import { apiError, parseId, sanitizeString, sanitizeImageUrl } from "@/lib/apiUtils";
+import { requirePermission } from "@/lib/staff";
 import { isRecordNotFound, parseJsonBody } from "@/lib/apiRequest";
 import logger from "@/lib/logger";
 import { NextResponse } from "next/server";
@@ -22,8 +23,8 @@ export async function GET(
   }
 
   // 管理者権限チェック（PUT/DELETEと統一）
-  const authResult = await checkAdminAuth();
-  if (!authResult.isAdmin) {
+  const authResult = await requirePermission("blog:write");
+  if (!authResult.ok) {
     return authResult.response;
   }
 
@@ -55,8 +56,8 @@ export async function DELETE(
     return apiError("無効なIDです", 400);
   }
 
-  const authResult = await checkAdminAuth();
-  if (!authResult.isAdmin) {
+  const authResult = await requirePermission("blog:write");
+  if (!authResult.ok) {
     return authResult.response;
   }
 
@@ -85,8 +86,8 @@ export async function PUT(
     return apiError("無効なIDです", 400);
   }
 
-  const authResult = await checkAdminAuth();
-  if (!authResult.isAdmin) {
+  const authResult = await requirePermission("blog:write");
+  if (!authResult.ok) {
     return authResult.response;
   }
 

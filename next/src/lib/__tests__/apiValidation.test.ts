@@ -10,9 +10,11 @@ vi.mock("@/lib/db", () => ({
     blog: { create: vi.fn(), update: vi.fn(), delete: vi.fn(), findUnique: vi.fn(), count: vi.fn() },
   },
 }));
-vi.mock("@/lib/apiUtils", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/lib/apiUtils")>()),
-  checkAdminAuth: vi.fn(async () => ({ isAdmin: true, email: "admin@example.com", role: "ADMIN" })),
+vi.mock("@/lib/staff", () => ({
+  requirePermission: vi.fn(async () => ({
+    ok: true,
+    user: { id: "u1", email: "admin@example.com", role: "ADMIN", totpEnabledAt: new Date() },
+  })),
 }));
 
 import { prisma } from "@/lib/db";

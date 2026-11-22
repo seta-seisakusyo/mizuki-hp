@@ -4,8 +4,15 @@ import { Avatar, Box, Divider, IconButton, Menu, MenuItem, Typography } from "@m
 import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
+import { can, type Permission } from "@/lib/permissions";
 
 const DEFAULT_AVATAR = "/mizuki_logo_transparent.jpg";
+
+const MENU_ITEMS: { label: string; path: string; permission: Permission }[] = [
+  { label: "お知らせ管理", path: "/portal-admin/news", permission: "news:write" },
+  { label: "問い合わせ管理", path: "/portal-admin/inquiry", permission: "inquiry:manage" },
+  { label: "俳句投稿", path: "/portal-admin/blog", permission: "blog:write" },
+];
 
 const ProfileConsoleModal = () => {
   const { data: session, status } = useSession();
@@ -26,11 +33,8 @@ const ProfileConsoleModal = () => {
     handleMenuClose();
   };
 
-  const menuItems = [
-    { label: "お知らせ管理", path: "/portal-admin/news" },
-    { label: "問い合わせ管理", path: "/portal-admin/inquiry" },
-    { label: "俳句投稿", path: "/portal-admin/blog" },
-  ];
+  // 権限の無いメニューは表示しない（API 側でも同じ権限で確認している）
+  const menuItems = MENU_ITEMS.filter((item) => can(session?.user?.role, item.permission));
 
   return (
     <>

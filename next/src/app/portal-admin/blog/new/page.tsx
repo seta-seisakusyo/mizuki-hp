@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import { useCan } from "../../StaffRoleProvider";
 
 type ApiErrorResponse = {
     error?: string;
@@ -19,6 +20,8 @@ async function readApiError(response: Response, fallback: string) {
 
 export default function NewBlogPage() {
     const router = useRouter();
+    // 画像のアップロードは ADMIN のみ（#193）
+    const canUploadImage = useCan("image:upload");
     const [title, setTitle] = useState("");
     const [content, setContent] = useState("");
     const [imageFile, setImageFile] = useState<File | null>(null);
@@ -121,7 +124,8 @@ export default function NewBlogPage() {
                     required
                 />
 
-                {/* 画像アップロード */}
+                {/* 画像アップロード（ADMIN のみ） */}
+                {canUploadImage && (
                 <div>
                     <label className="block text-gray-700 mb-2 font-semibold">
                         📸 サムネイル画像
@@ -162,6 +166,7 @@ export default function NewBlogPage() {
                         </div>
                     )}
                 </div>
+                )}
 
                 {/* 投稿ボタン */}
                 <button

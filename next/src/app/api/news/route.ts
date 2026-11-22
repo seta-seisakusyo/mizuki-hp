@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
-import { apiError, checkAdminAuth, sanitizeString, sanitizeContents, sanitizeUrl } from "@/lib/apiUtils";
+import { apiError, sanitizeString, sanitizeContents, sanitizeUrl } from "@/lib/apiUtils";
+import { requirePermission } from "@/lib/staff";
 import { parseJsonBody } from "@/lib/apiRequest";
 import { checkRateLimit, rateLimitResponse, PUBLIC_API_LIMIT } from "@/lib/rateLimit";
 import logger from "@/lib/logger";
@@ -52,8 +53,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const authResult = await checkAdminAuth();
-  if (!authResult.isAdmin) {
+  const authResult = await requirePermission("news:write");
+  if (!authResult.ok) {
     return authResult.response;
   }
 
