@@ -64,7 +64,7 @@ docker-compose up -d
 - `/blog` - ブログ
 - `/news` - お知らせ
 - `/doctor` - 医師紹介
-- `/services` - 診療案内
+- `/consultation` - 診療案内
 - `/consultation` - 診療時間
 - `/contact` - お問い合わせ
 - `/online` - オンライン診療
