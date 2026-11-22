@@ -127,8 +127,8 @@ describe("two-factor secrets", () => {
     expect(() => deriveMfaKey("")).toThrow("AUTH_SECRET");
   });
 
-  it("requires two-factor for ADMIN only", () => {
-    expect(isMfaRequired("ADMIN")).toBe(true);
+  it("does not require two-factor for any role", () => {
+    expect(isMfaRequired("ADMIN")).toBe(false);
     expect(isMfaRequired("EDITOR")).toBe(false);
     expect(isMfaRequired(undefined)).toBe(false);
   });

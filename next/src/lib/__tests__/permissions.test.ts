@@ -23,8 +23,8 @@ describe("権限の対応表 (#193)", () => {
     }
   });
 
-  it("二要素認証が必須なのは ADMIN だけ", () => {
-    expect(isMfaRequired("ADMIN")).toBe(true);
+  it("二要素認証はどのロールにも必須にしない", () => {
+    expect(isMfaRequired("ADMIN")).toBe(false);
     expect(isMfaRequired("EDITOR")).toBe(false);
     expect(isMfaRequired(undefined)).toBe(false);
   });

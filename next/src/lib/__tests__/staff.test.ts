@@ -49,13 +49,11 @@ describe("requirePermission (#193)", () => {
     expect(await result.response.json()).toEqual({ error: AUTH_MESSAGES.forbidden });
   });
 
-  it("二要素認証が未設定の ADMIN は 403", async () => {
+  it("二要素認証が未設定の ADMIN も許可された操作はできる", async () => {
     loginAs("admin@example.com");
     dbUser("ADMIN", null);
-    const result = await requirePermission("news:write");
-    expect(result.ok).toBe(false);
-    if (result.ok) return;
-    expect(await result.response.json()).toEqual({ error: AUTH_MESSAGES.mfaRequired });
+    const result = await requirePermission("inquiry:manage");
+    expect(result.ok).toBe(true);
   });
 
   it("EDITOR は二要素認証が無くても許可された操作はできる", async () => {

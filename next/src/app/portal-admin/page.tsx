@@ -26,7 +26,7 @@ const menuItems: { label: string; description: string; path: string; icon: strin
   },
   {
     label: "二要素認証",
-    description: "ログイン時の確認コードの設定",
+    description: "認証アプリによる確認コードの設定（任意）",
     path: "/portal-admin/security",
     icon: "🔐",
     permission: "admin:access",

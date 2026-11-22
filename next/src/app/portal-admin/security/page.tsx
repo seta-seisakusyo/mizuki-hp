@@ -15,6 +15,12 @@ export default async function SecurityPage() {
     <main className="max-w-xl mx-auto p-6">
       <h1 className="text-2xl font-bold mb-6">二要素認証</h1>
 
+      {!required && (
+        <p className="mb-6 text-sm text-gray-600">
+          任意の設定です。設定すると、ログインのたびにパスワードに加えて認証アプリの確認コードが必要になります。
+        </p>
+      )}
+
       {required && !enabled && (
         <p className="mb-6 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm">
           管理者のアカウントは、二要素認証を設定するまで管理画面を使えません。

@@ -25,8 +25,13 @@ export const PERMISSIONS = {
 
 export type Permission = keyof typeof PERMISSIONS;
 
-/** 二要素認証を設定するまで管理画面を使えないロール */
-export const MFA_REQUIRED_ROLES = ["ADMIN"] as const satisfies readonly UserRole[];
+/**
+ * 二要素認証を設定するまで管理画面を使えないロール。
+ * 現在はどのロールも必須にしない（メールアドレスとパスワードでログインできる）。
+ * 認証アプリの設定は任意で、設定したアカウントはログイン時に確認コードが必要になる。
+ * 必須に戻すときは ["ADMIN"] などを指定する。
+ */
+export const MFA_REQUIRED_ROLES: readonly UserRole[] = [];
 
 const includesRole = (roles: readonly string[], role: unknown): role is UserRole =>
   typeof role === "string" && roles.includes(role);
