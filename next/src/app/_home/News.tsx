@@ -1,37 +1,17 @@
-"use client";
-
 import { Box, Typography, Link } from "@mui/material";
-import { useCallback, useEffect, useState } from "react";
+import { getNewsPage } from "@/lib/news";
 
-type NewsItem = {
-  id: number;
-  title: string;
-  date: string;
-  contents: string[];
-  url: string | null;
-  color: string;
-  pinned: boolean;
-};
+const HOME_NEWS_COUNT = 5;
 
-export default function News() {
-  const [newsList, setNewsList] = useState<NewsItem[]>([]);
+/**
+ * トップページのお知らせ（最新5件）。
+ * 以前はブラウザから /api/news を呼んでいたため、HTML にお知らせが含まれず、
+ * 読み込み直後は「お知らせはありません」と表示されていた（#194）。
+ */
+export default async function News() {
+  const { items } = await getNewsPage(1, HOME_NEWS_COUNT);
 
-  const fetchNews = useCallback(async () => {
-    try {
-      const res = await fetch("/api/news");
-      if (!res.ok) return;
-      const data = await res.json();
-      setNewsList((data.news || []).slice(0, 5));
-    } catch (err) {
-      console.error("お知らせ取得エラー:", err);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchNews();
-  }, [fetchNews]);
-
-  if (newsList.length === 0) {
+  if (items.length === 0) {
     return (
       <Box sx={{ maxWidth: 700, mx: "auto", py: 2, textAlign: "center" }}>
         <Typography variant="body2" color="text.secondary">
@@ -43,57 +23,54 @@ export default function News() {
 
   return (
     <Box sx={{ maxWidth: 700, mx: "auto", py: 2, px: 2 }}>
-      {newsList.map((news) => (
-        <Box
-          key={news.id}
-          sx={{
-            display: "flex",
-            gap: 2,
-            py: 1.5,
-            borderBottom: "1px solid",
-            borderColor: "divider",
-            alignItems: "baseline",
-          }}
-        >
-          <Box>
-            {news.url ? (
-              <Link
-                href={news.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                underline="hover"
-                variant="body2"
-                sx={{ fontWeight: "bold", color: news.color === "red" ? "red" : "inherit" }}
-              >
-                {news.title}
-              </Link>
-            ) : (
-              <Typography
-                variant="body2"
-                sx={{ fontWeight: "bold", color: news.color === "red" ? "red" : "inherit" }}
-              >
-                {news.title}
-              </Typography>
-            )}
-            {news.contents && news.contents.length > 0 && (
-              <Box sx={{ mt: 0.5 }}>
-                {news.contents.map((line, i) => (
-                  <Typography
-                    key={`${news.id}-line-${i}`}
-                    variant="body2"
-                    sx={{
-                      fontSize: "0.85rem",
-                      color: news.color === "red" ? "red" : "text.secondary",
-                    }}
-                  >
-                    {line}
-                  </Typography>
-                ))}
-              </Box>
-            )}
+      {items.map((news) => {
+        const isRed = news.color === "red";
+        return (
+          <Box
+            key={news.id}
+            sx={{
+              display: "flex",
+              gap: 2,
+              py: 1.5,
+              borderBottom: "1px solid",
+              borderColor: "divider",
+              alignItems: "baseline",
+            }}
+          >
+            <Box>
+              {news.url ? (
+                <Link
+                  href={news.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  underline="hover"
+                  variant="body2"
+                  sx={{ fontWeight: "bold", color: isRed ? "red" : "inherit" }}
+                >
+                  {news.title}
+                </Link>
+              ) : (
+                <Typography variant="body2" sx={{ fontWeight: "bold", color: isRed ? "red" : "inherit" }}>
+                  {news.title}
+                </Typography>
+              )}
+              {news.lines.length > 0 && (
+                <Box sx={{ mt: 0.5 }}>
+                  {news.lines.map((line, i) => (
+                    <Typography
+                      key={`${news.id}-line-${i}`}
+                      variant="body2"
+                      sx={{ fontSize: "0.85rem", color: isRed ? "red" : "text.secondary" }}
+                    >
+                      {line}
+                    </Typography>
+                  ))}
+                </Box>
+              )}
+            </Box>
           </Box>
-        </Box>
-      ))}
+        );
+      })}
     </Box>
   );
 }

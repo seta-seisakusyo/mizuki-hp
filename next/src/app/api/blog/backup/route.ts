@@ -1,7 +1,8 @@
 import { timingSafeEqual } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { apiError, checkAdminAuth } from "@/lib/apiUtils";
+import { apiError } from "@/lib/apiUtils";
+import { requirePermission } from "@/lib/staff";
 import logger from "@/lib/logger";
 import { checkRateLimit, rateLimitResponse } from "@/lib/rateLimit";
 
@@ -45,8 +46,8 @@ export async function GET(request: NextRequest) {
   if (rateLimit.limited) return rateLimitResponse(rateLimit.resetTime);
 
   if (!isBackupTokenAuthorized(request)) {
-    const authResult = await checkAdminAuth();
-    if (!authResult.isAdmin) {
+    const authResult = await requirePermission("blog:write");
+    if (!authResult.ok) {
       return authResult.response;
     }
   }

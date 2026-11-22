@@ -8,7 +8,6 @@ export interface ValidationError {
 // 入力長制限の定数
 export const INPUT_LIMITS = {
   NAME_MAX: 50,
-  COMPANY_MAX: 100,
   EMAIL_MAX: 254,
   PHONE_MAX: 20,
   INQUIRY_MAX: 2000,
@@ -45,7 +44,6 @@ const validateEmail = (email: string): string | null => {
 
 export interface InquiryData {
   name: string;
-  company?: string; // 任意フィールド
   email: string;
   phone?: string; // 任意フィールド
   inquiry: string;
@@ -57,11 +55,6 @@ export const validateInquiry = (data: InquiryData): ValidationError => {
   // 氏名: 必須, 最大50文字
   const nameError = validateName(data.name);
   if (nameError) errors.name = nameError;
-
-  // 会社名: 任意, 最大100文字
-  if (data.company && data.company.length > INPUT_LIMITS.COMPANY_MAX) {
-    errors.company = `会社名は${INPUT_LIMITS.COMPANY_MAX}文字以内で入力してください。`;
-  }
 
   // メールアドレス: 必須, 正しい形式
   const emailError = validateEmail(data.email);
