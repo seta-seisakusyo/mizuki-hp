@@ -23,6 +23,7 @@ import {
 import axios from "axios";
 import Script from "next/script";
 import { useCallback, useRef, useState } from "react";
+import { CLINIC, CLINIC_ADDRESS } from "@/lib/clinic";
 
 declare global {
   interface Window {
@@ -160,13 +161,13 @@ export default function ContactForm({ recaptchaSiteKey }: ContactFormProps) {
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <Phone sx={{ color: "#2a7d8f", fontSize: 20 }} />
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              076-255-0337
+              {CLINIC.tel}
             </Typography>
           </Box>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <LocationOn sx={{ color: "#2a7d8f", fontSize: 20 }} />
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              石川県金沢市みずき1丁目3-5
+              {CLINIC_ADDRESS}
             </Typography>
           </Box>
         </Box>
