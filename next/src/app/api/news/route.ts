@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
-import { apiError, checkAdminAuth, sanitizeString, sanitizeContents, sanitizeUrl, validateNewsColor, validateDate, validateNewsInput } from "@/lib/apiUtils";
+import { apiError, checkAdminAuth, sanitizeString, sanitizeContents, sanitizeUrl } from "@/lib/apiUtils";
+import { parseJsonBody } from "@/lib/apiRequest";
 import { checkRateLimit, rateLimitResponse, PUBLIC_API_LIMIT } from "@/lib/rateLimit";
 import logger from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
@@ -56,56 +57,20 @@ export async function POST(req: NextRequest) {
     return authResult.response;
   }
 
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return apiError("無効なJSONです", 400);
-  }
-
-  const parsedBody = newsCreateSchema.safeParse(body);
-  if (!parsedBody.success) {
-    return apiError("Invalid news data.", 400);
-  }
-  body = parsedBody.data;
-
-  const { date, title, contents, url, color, pinned } = body as {
-    date?: string;
-    title?: string;
-    contents?: unknown;
-    url?: string;
-    color?: string;
-    pinned?: boolean;
-  };
-
-  if (!date || !title || !contents) {
-    return apiError("日付、タイトル、内容は必須です", 400);
-  }
-
-  // 日付バリデーション
-  const validatedDate = validateDate(date);
-  if (!validatedDate) {
-    return apiError("無効な日付です。過去10年〜未来1年の範囲で指定してください。", 400);
-  }
-
-  // 入力長バリデーション
-  const lengthError = validateNewsInput(title, contents);
-  if (lengthError) {
-    return apiError(lengthError, 400);
-  }
+  // 必須・文字数・日付の範囲・色は newsCreateSchema で検証済み
+  const parsed = await parseJsonBody(req, newsCreateSchema);
+  if (!parsed.ok) return parsed.response;
+  const { date, title, contents, url, color, pinned } = parsed.data;
 
   try {
-    const sanitizedTitle = sanitizeString(title);
-    const sanitizedContents = sanitizeContents(contents);
-
     const news = await prisma.news.create({
       data: {
-        date: validatedDate,
-        title: sanitizedTitle ?? "",
-        contents: sanitizedContents,
+        date,
+        title: sanitizeString(title) ?? "",
+        contents: sanitizeContents(contents),
         url: url ? sanitizeUrl(url) : null,
-        color: validateNewsColor(color),
-        pinned: pinned ?? false,
+        color,
+        pinned,
       },
     });
 
