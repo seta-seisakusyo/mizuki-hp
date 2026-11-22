@@ -3,7 +3,7 @@ import crypto from "crypto";
 import { NextResponse } from "next/server";
 import path from "path";
 import logger from "@/lib/logger";
-import { checkAdminOnlyAuth } from "@/lib/apiUtils";
+import { requirePermission } from "@/lib/staff";
 import { checkRateLimit, rateLimitResponse } from "@/lib/rateLimit";
 import { NextRequest } from "next/server";
 import sharp from "sharp";
@@ -81,8 +81,8 @@ async function getUploadStorageBytes(uploadDir: string): Promise<number> {
 
 export async function POST(req: NextRequest) {
   try {
-    const currentAuth = await checkAdminOnlyAuth();
-    if (!currentAuth.isAdmin) return currentAuth.response;
+    const currentAuth = await requirePermission("image:upload");
+    if (!currentAuth.ok) return currentAuth.response;
 
     const rateLimit = await checkRateLimit(req, { max: 10, windowMs: 60 * 1000 });
     if (rateLimit.limited) return rateLimitResponse(rateLimit.resetTime);

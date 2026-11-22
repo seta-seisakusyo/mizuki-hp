@@ -1,6 +1,6 @@
 import { isRateLimited } from "@/lib/rateLimit";
 import { validateInquiry } from "@/lib/validation";
-import { isAdminUser } from "@/lib/contact/auth";
+import { requirePermission } from "@/lib/staff";
 import { sendContactEmails } from "@/lib/contact/mailer";
 import { verifyContactRecaptcha } from "@/lib/contact/recaptcha";
 import {
@@ -19,10 +19,6 @@ function badRequest(error: string, details?: Record<string, string>) {
     { success: false, error, ...(details ? { details } : {}) },
     { status: 400 }
   );
-}
-
-function unauthorized() {
-  return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
 }
 
 function sanitizeBody(body: ContactRequestBody): ContactPayload {
@@ -95,7 +91,9 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  if (!(await isAdminUser())) return unauthorized();
+  // お問い合わせは個人情報のため ADMIN のみ（未ログインは 401、権限が無いと 403）
+  const authResult = await requirePermission("inquiry:manage");
+  if (!authResult.ok) return authResult.response;
 
   try {
     const inquiries = await listInquiries();
@@ -118,7 +116,9 @@ export async function DELETE(req: NextRequest) {
     );
   }
 
-  if (!(await isAdminUser())) return unauthorized();
+  // お問い合わせは個人情報のため ADMIN のみ（未ログインは 401、権限が無いと 403）
+  const authResult = await requirePermission("inquiry:manage");
+  if (!authResult.ok) return authResult.response;
 
   try {
     const parsedBody = inquiryDeleteSchema.safeParse(await req.json());
