@@ -2,6 +2,8 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { toJSTDateInputValue } from "@/lib/date";
+import { newsContentsToLines } from "@/lib/newsContents";
 
 export default function EditNewsPage() {
   const { id } = useParams();
@@ -23,12 +25,9 @@ export default function EditNewsPage() {
         if (!res.ok) throw new Error("取得に失敗しました");
         const data = await res.json();
         setTitle(data.title);
-        setDate(new Date(data.date).toISOString().split("T")[0]);
-        const contentsText =
-          Array.isArray(data.contents)
-            ? data.contents.join("\n")
-            : String(data.contents || "");
-        setContents(contentsText);
+        // UTC の日付ではなく日本時間の日付を表示する（UTC で切ると前日になる場合がある）
+        setDate(toJSTDateInputValue(data.date));
+        setContents(newsContentsToLines(data.contents).join("\n"));
         setUrl(data.url || "");
         setColor(data.color || "black");
         setPinned(data.pinned || false);

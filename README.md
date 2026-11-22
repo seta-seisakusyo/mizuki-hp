@@ -354,11 +354,7 @@ mizuki-hp/
 | `/blog` | 院長俳句展（縦書き、5-7-5段下げ表示） |
 | `/blog/[year]/[month]` | 俳句アーカイブ（年月別） |
 | `/news` | お知らせ一覧 |
-| `/recruit` | 採用情報 |
-| `/company` | 会社概要 |
-| `/services` | サービス案内 |
 | `/privacy-policy` | プライバシーポリシー |
-| `/terms-of-service` | 利用規約 |
 
 ### 管理者ページ
 

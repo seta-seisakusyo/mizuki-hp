@@ -5,11 +5,12 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import bcryptjs from "bcryptjs";
 import NextAuth, { CredentialsSignin } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import authConfig from "../auth.config";
+import authConfig, { SESSION_MAX_AGE } from "../auth.config";
 
 const useSecureCookies = process.env.NEXTAUTH_URL?.startsWith("https://") ?? false;
 const DUMMY_PASSWORD_HASH = "$2b$10$89gj1HTei3jdVvz8.e6sJOh36n9gwxmKJublLj6h.IxuDgzXXPpIe";
-const AUTH_ERROR_MESSAGE = "メールアドレスまたはパスワードが正しくありません。";
+/** ログイン失敗時の文言（アカウントの有無が分からないよう、理由を区別しない） */
+export const AUTH_ERROR_MESSAGE = "メールアドレスまたはパスワードが正しくありません。";
 
 export const OTP_REQUIRED = "otp_required";
 export const OTP_INVALID = "otp_invalid";
@@ -53,7 +54,7 @@ export const {
   ...authConfig,
   adapter: PrismaAdapter(prisma),
   secret: process.env.AUTH_SECRET,
-  jwt: { maxAge: 60 * 60 },
+  jwt: { maxAge: SESSION_MAX_AGE },
   trustHost: true,
   useSecureCookies,
   providers: [

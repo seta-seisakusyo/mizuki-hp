@@ -2,7 +2,8 @@
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
-import { decryptMfaSecret, deriveMfaKey, encryptMfaSecret, isMfaRequired, totpEnrollment } from "@/lib/mfa";
+import { decryptMfaSecret, deriveMfaKey, encryptMfaSecret, totpEnrollment } from "@/lib/mfa";
+import { isMfaRequired, isStaffRole } from "@/lib/permissions";
 import { checkRateLimitKey, getTrustedClientIp } from "@/lib/rateLimit";
 import { sendSecurityNotification } from "@/lib/securityNotify";
 import { generateTotpSecret, verifyTotp } from "@/lib/totp";
@@ -28,7 +29,7 @@ async function currentStaff() {
       totpLastStep: true,
     },
   });
-  if (!user?.email || (user.role !== "ADMIN" && user.role !== "EDITOR")) return null;
+  if (!user?.email || !isStaffRole(user.role)) return null;
   return { ...user, email: user.email };
 }
 
