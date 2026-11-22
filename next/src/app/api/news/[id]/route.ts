@@ -1,17 +1,18 @@
 import { prisma } from "@/lib/db";
-import { apiError, checkAdminAuth, parseId, sanitizeString, sanitizeContents, sanitizeUrl, validateDate, validateNewsTitle, validateNewsContents, validateNewsColor } from "@/lib/apiUtils";
+import { apiError, checkAdminAuth, parseId, sanitizeString, sanitizeContents, sanitizeUrl } from "@/lib/apiUtils";
+import { isRecordNotFound, parseJsonBody } from "@/lib/apiRequest";
 import logger from "@/lib/logger";
 import { NextResponse } from "next/server";
 import type { RouteParams, IdParams } from "@/types/models";
 import { newsUpdateSchema } from "@/lib/apiSchemas";
 
+const NOT_FOUND_MESSAGE = "お知らせが見つかりません";
+
 export async function GET(
   request: Request,
   { params }: RouteParams<IdParams>
 ) {
-  const { id } = await params;
-  const parsedId = parseId(id);
-
+  const parsedId = parseId((await params).id);
   if (parsedId === null) {
     return apiError("無効なIDです", 400);
   }
@@ -22,7 +23,7 @@ export async function GET(
     });
 
     if (!news) {
-      return apiError("お知らせが見つかりません", 404);
+      return apiError(NOT_FOUND_MESSAGE, 404);
     }
 
     return NextResponse.json(news);
@@ -36,9 +37,7 @@ export async function PUT(
   request: Request,
   { params }: RouteParams<IdParams>
 ) {
-  const { id } = await params;
-  const parsedId = parseId(id);
-
+  const parsedId = parseId((await params).id);
   if (parsedId === null) {
     return apiError("無効なIDです", 400);
   }
@@ -48,66 +47,26 @@ export async function PUT(
     return authResult.response;
   }
 
-  let data: unknown;
-  try {
-    data = await request.json();
-  } catch {
-    return apiError("無効なJSONです", 400);
-  }
-
-  const parsedData = newsUpdateSchema.safeParse(data);
-  if (!parsedData.success) {
-    return apiError("Invalid news data.", 400);
-  }
-  data = parsedData.data;
-
-  const { title, date, contents, url, color, pinned } = data as {
-    title?: string;
-    date?: string;
-    contents?: unknown;
-    url?: string;
-    color?: string;
-    pinned?: boolean;
-  };
-
-  // 入力長バリデーション（個別フィールド検証：部分更新対応）
-  if (title !== undefined) {
-    const titleError = validateNewsTitle(title);
-    if (titleError) {
-      return apiError(titleError, 400);
-    }
-  }
-  if (contents !== undefined) {
-    const contentsError = validateNewsContents(contents);
-    if (contentsError) {
-      return apiError(contentsError, 400);
-    }
-  }
-
-  // 日付バリデーション
-  let validatedDate: Date | undefined;
-  if (date) {
-    const parsedDate = validateDate(date);
-    if (!parsedDate) {
-      return apiError("無効な日付です", 400);
-    }
-    validatedDate = parsedDate;
-  }
+  // 文字数・日付の範囲・色は newsUpdateSchema で検証済み（部分更新のため各項目は任意）
+  const parsed = await parseJsonBody(request, newsUpdateSchema);
+  if (!parsed.ok) return parsed.response;
+  const { title, date, contents, url, color, pinned } = parsed.data;
 
   try {
     const updated = await prisma.news.update({
       where: { id: parsedId },
       data: {
         title: sanitizeString(title),
-        date: validatedDate,
+        date,
         contents: contents !== undefined ? sanitizeContents(contents) : undefined,
         url: url !== undefined ? (url ? sanitizeUrl(url) : null) : undefined,
-        color: color !== undefined ? validateNewsColor(color) : undefined,
-        pinned: pinned ?? undefined,
+        color,
+        pinned,
       },
     });
     return NextResponse.json(updated);
   } catch (error) {
+    if (isRecordNotFound(error)) return apiError(NOT_FOUND_MESSAGE, 404);
     logger.error("更新エラー:", error);
     return apiError("更新に失敗しました", 500);
   }
@@ -117,9 +76,7 @@ export async function DELETE(
   request: Request,
   { params }: RouteParams<IdParams>
 ) {
-  const { id } = await params;
-  const parsedId = parseId(id);
-
+  const parsedId = parseId((await params).id);
   if (parsedId === null) {
     return apiError("無効なIDです", 400);
   }
@@ -135,6 +92,7 @@ export async function DELETE(
     });
     return NextResponse.json({ message: "削除しました" });
   } catch (error) {
+    if (isRecordNotFound(error)) return apiError(NOT_FOUND_MESSAGE, 404);
     logger.error("削除エラー:", error);
     return apiError("削除に失敗しました", 500);
   }
