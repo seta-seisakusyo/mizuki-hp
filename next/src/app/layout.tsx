@@ -10,6 +10,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import "./globals.css";
 import { SITE_URL } from "@/lib/site";
+import { CLINIC, openingHoursSpecification, postalAddress } from "@/lib/clinic";
 
 const siteUrl = SITE_URL;
 
@@ -78,44 +79,18 @@ const structuredData = {
   "@context": "https://schema.org",
   "@type": "MedicalBusiness",
   "@id": siteUrl,
-  name: "みずきクリニック",
+  name: CLINIC.name,
   description:
     "石川県金沢市にある内科・消化器内科クリニック。内視鏡検査、在宅医療、オンライン診療など、地域の皆様の健康をサポートします。",
   url: siteUrl,
-  telephone: "076-255-0337",
-  address: {
-    "@type": "PostalAddress",
-    streetAddress: "みずき1丁目3-5",
-    addressLocality: "金沢市",
-    addressRegion: "石川県",
-    postalCode: "920-3122",
-    addressCountry: "JP",
-  },
+  telephone: CLINIC.tel,
+  address: postalAddress(),
   geo: {
     "@type": "GeoCoordinates",
-    latitude: 36.5944,
-    longitude: 136.6256,
+    ...CLINIC.geo,
   },
-  openingHoursSpecification: [
-    {
-      "@type": "OpeningHoursSpecification",
-      dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
-      opens: "09:00",
-      closes: "12:00",
-    },
-    {
-      "@type": "OpeningHoursSpecification",
-      dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Friday"],
-      opens: "14:00",
-      closes: "18:00",
-    },
-    {
-      "@type": "OpeningHoursSpecification",
-      dayOfWeek: "Saturday",
-      opens: "09:00",
-      closes: "12:00",
-    },
-  ],
+  // 診療時間表（consultation/Message01.tsx）と同じデータから作る
+  openingHoursSpecification: openingHoursSpecification(),
   medicalSpecialty: ["内科", "消化器内科"],
   priceRange: "保険適用",
 };
