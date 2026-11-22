@@ -1,3 +1,5 @@
+import { CLINIC, CLINIC_ADDRESS } from "@/lib/clinic";
+
 export type Paragraph = {
   type: "paragraph";
   content: string[];
@@ -94,7 +96,13 @@ export const data: ISection[] = [
     listItems: [
       {
         type: "paragraph",
-        content: ["住所： 〒921-0201 石川県金沢市みずき1丁目3-5", "社名： みずきクリニック", "代表： 木村 寛伸", "TEL： 076-255-0337", "Eメールアドレス： info@mizuki-clinic.jp"],
+        content: [
+          `住所： 〒${CLINIC.postalCode} ${CLINIC_ADDRESS}`,
+          `社名： ${CLINIC.name}`,
+          "代表： 木村 寛伸",
+          `TEL： ${CLINIC.tel}`,
+          `Eメールアドレス： ${CLINIC.email}`,
+        ],
       },
     ],
   },

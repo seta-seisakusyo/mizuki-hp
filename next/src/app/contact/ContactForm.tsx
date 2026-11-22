@@ -1,6 +1,7 @@
 "use client";
 
 import BaseContainer from "@/components/BaseContainer";
+import { buildContactRequest, type ContactFormValues } from "@/lib/contact/request";
 import { validateInquiry } from "@/lib/validation";
 import {
   CheckCircle,
@@ -22,6 +23,7 @@ import {
 import axios from "axios";
 import Script from "next/script";
 import { useCallback, useRef, useState } from "react";
+import { CLINIC, CLINIC_ADDRESS } from "@/lib/clinic";
 
 declare global {
   interface Window {
@@ -37,7 +39,6 @@ interface FormErrors {
   email?: string;
   phone?: string;
   inquiry?: string;
-  company?: string;
 }
 
 interface ContactFormProps {
@@ -46,7 +47,6 @@ interface ContactFormProps {
 
 export default function ContactForm({ recaptchaSiteKey }: ContactFormProps) {
   const nameRef = useRef<HTMLInputElement>(null);
-  const companyRef = useRef<HTMLInputElement>(null);
   const emailRef = useRef<HTMLInputElement>(null);
   const phoneRef = useRef<HTMLInputElement>(null);
   const inquiryRef = useRef<HTMLTextAreaElement>(null);
@@ -70,16 +70,14 @@ export default function ContactForm({ recaptchaSiteKey }: ContactFormProps) {
     // レースコンディション防止: 送信中は再送信を防ぐ
     if (isSubmitting) return;
 
-    const formData = {
+    const values: ContactFormValues = {
       name: nameRef.current?.value || "",
-      company: companyRef.current?.value || "",
       email: emailRef.current?.value || "",
       phone: phoneRef.current?.value || "",
       inquiry: inquiryRef.current?.value || "",
-      token: "",
     };
 
-    const validationErrors = validateInquiry(formData);
+    const validationErrors = validateInquiry(values);
     setErrors(validationErrors);
     if (Object.keys(validationErrors).length > 0) return;
 
@@ -89,6 +87,7 @@ export default function ContactForm({ recaptchaSiteKey }: ContactFormProps) {
 
     try {
       // reCAPTCHA v3 トークン取得＆検証
+      let token = "";
       if (recaptchaSiteKey) {
         if (!window.grecaptcha) {
           setModalContent("error");
@@ -96,22 +95,19 @@ export default function ContactForm({ recaptchaSiteKey }: ContactFormProps) {
           return;
         }
 
-        const token = await new Promise<string>((resolve) => {
+        token = await new Promise<string>((resolve) => {
           window.grecaptcha.ready(async () => {
             const value = await window.grecaptcha.execute(recaptchaSiteKey, { action: "contact" });
             resolve(value);
           });
         });
-
-        formData.token = token;
       }
 
-      const emailRes = await axios.post("/api/email", formData);
+      const emailRes = await axios.post("/api/email", buildContactRequest(values, token));
 
       if (emailRes.data.success) {
         setModalContent("success");
         if (nameRef.current) nameRef.current.value = "";
-        if (companyRef.current) companyRef.current.value = "";
         if (emailRef.current) emailRef.current.value = "";
         if (phoneRef.current) phoneRef.current.value = "";
         if (inquiryRef.current) inquiryRef.current.value = "";
@@ -165,13 +161,13 @@ export default function ContactForm({ recaptchaSiteKey }: ContactFormProps) {
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <Phone sx={{ color: "#2a7d8f", fontSize: 20 }} />
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              076-255-0337
+              {CLINIC.tel}
             </Typography>
           </Box>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <LocationOn sx={{ color: "#2a7d8f", fontSize: 20 }} />
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              石川県金沢市みずき1丁目3-5
+              {CLINIC_ADDRESS}
             </Typography>
           </Box>
         </Box>
