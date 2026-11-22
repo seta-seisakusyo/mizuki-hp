@@ -4,6 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import type { BlogItem } from "@/types/models";
+import { useCan } from "../../../StaffRoleProvider";
 
 type ApiErrorResponse = {
     error?: string;
@@ -25,6 +26,8 @@ async function readApiError(response: Response, fallback: string) {
 export default function EditBlogPage() {
     const { id } = useParams();
     const router = useRouter();
+    // 新しい画像のアップロードは ADMIN のみ（#193）。既存の画像の表示位置は変更できる
+    const canUploadImage = useCan("image:upload");
     const [blog, setBlog] = useState<BlogItem | null>(null);
     const [title, setTitle] = useState("");
     const [content, setContent] = useState("");
@@ -139,8 +142,15 @@ export default function EditBlogPage() {
                                 </select>
                             </div>
                         )}
-                        <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleImageUpload} />
-                        {uploading && <p className="text-sm text-gray-500 mt-1">アップロード中...</p>}
+                        {canUploadImage && (
+                            <>
+                                <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleImageUpload} />
+                                {uploading && <p className="text-sm text-gray-500 mt-1">アップロード中...</p>}
+                            </>
+                        )}
+                        {!canUploadImage && !imageUrl && (
+                            <p className="text-sm text-gray-500">画像の追加は管理者（ADMIN）のみ行えます。</p>
+                        )}
                     </div>
 
                     <button

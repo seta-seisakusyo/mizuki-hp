@@ -1,4 +1,8 @@
+import type { UserRole } from "@prisma/client";
 import { NextAuthConfig } from "next-auth";
+
+/** セッション（JWT）の有効期限（秒）。src/auth.ts の jwt.maxAge も同じ値を使う */
+export const SESSION_MAX_AGE = 60 * 60;
 
 const authConfig = {
   trustHost: true,
@@ -9,7 +13,7 @@ const authConfig = {
 
   session: {
     strategy: "jwt",
-    maxAge: 60 * 60,
+    maxAge: SESSION_MAX_AGE,
   },
 
   // Middleware also consumes this config, so providers and Prisma access are
@@ -33,7 +37,7 @@ const authConfig = {
         session.user.id = token.id as string;
         session.user.email = token.email as string;
         session.user.name = token.name as string;
-        session.user.role = token.role as string;
+        session.user.role = token.role as UserRole;
       }
       return session;
     },

@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/db";
-import { apiError, checkAdminAuth, sanitizeString, sanitizeImageUrl, validateBlogInput } from "@/lib/apiUtils";
+import { apiError, sanitizeString, sanitizeImageUrl } from "@/lib/apiUtils";
+import { requirePermission } from "@/lib/staff";
+import { parseJsonBody } from "@/lib/apiRequest";
 import { checkRateLimit, rateLimitResponse, PUBLIC_API_LIMIT } from "@/lib/rateLimit";
 import logger from "@/lib/logger";
 import { NextRequest, NextResponse } from "next/server";
@@ -30,48 +32,23 @@ export async function GET(req: NextRequest) {
 // 投稿作成 (POST)
 // =====================
 export async function POST(request: Request) {
-  const authResult = await checkAdminAuth();
-  if (!authResult.isAdmin) {
+  const authResult = await requirePermission("blog:write");
+  if (!authResult.ok) {
     return authResult.response;
   }
 
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return apiError("無効なJSONです", 400);
-  }
-
-  const parsedBody = blogCreateSchema.safeParse(body);
-  if (!parsedBody.success) {
-    return apiError("Invalid blog data.", 400);
-  }
-  body = parsedBody.data;
-
-  const { title, content, imageUrl, imagePosition } = body as {
-    title?: string;
-    content?: string;
-    imageUrl?: string;
-    imagePosition?: string;
-  };
-
-  if (!title || !content) {
-    return apiError("タイトルと本文は必須です", 400);
-  }
-
-  // 入力長バリデーション
-  const lengthError = validateBlogInput(title, content);
-  if (lengthError) {
-    return apiError(lengthError, 400);
-  }
+  // 必須・文字数・画像の位置は blogCreateSchema で検証済み
+  const parsed = await parseJsonBody(request, blogCreateSchema);
+  if (!parsed.ok) return parsed.response;
+  const { title, content, imageUrl, imagePosition } = parsed.data;
 
   try {
     const newBlog = await prisma.blog.create({
       data: {
         title: sanitizeString(title) ?? "",
         content: sanitizeString(content) ?? "",
-        imageUrl: sanitizeImageUrl(imageUrl),
-        imagePosition: imagePosition || "center",
+        imageUrl: sanitizeImageUrl(imageUrl ?? undefined),
+        imagePosition,
       },
     });
     return NextResponse.json(newBlog);

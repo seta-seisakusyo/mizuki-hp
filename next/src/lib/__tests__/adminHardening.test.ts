@@ -7,7 +7,8 @@ import {
   isAllowedApiWrite,
   parseAllowedIps,
 } from "@/lib/edgeGuard";
-import { decryptMfaSecret, deriveMfaKey, encryptMfaSecret, isMfaRequired, totpEnrollment } from "@/lib/mfa";
+import { decryptMfaSecret, deriveMfaKey, encryptMfaSecret, totpEnrollment } from "@/lib/mfa";
+import { isMfaRequired } from "@/lib/permissions";
 import { buildSecurityMail } from "@/lib/securityNotify";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -126,8 +127,8 @@ describe("two-factor secrets", () => {
     expect(() => deriveMfaKey("")).toThrow("AUTH_SECRET");
   });
 
-  it("requires two-factor for ADMIN only", () => {
-    expect(isMfaRequired("ADMIN")).toBe(true);
+  it("does not require two-factor for any role", () => {
+    expect(isMfaRequired("ADMIN")).toBe(false);
     expect(isMfaRequired("EDITOR")).toBe(false);
     expect(isMfaRequired(undefined)).toBe(false);
   });
